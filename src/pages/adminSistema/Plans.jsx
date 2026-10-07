@@ -1,0 +1,200 @@
+// src/pages/adminSistema/Plans.jsx
+// Admin do Sistema → Planos e Subscrições. Confirma/corrige a dimensão declarada
+// por cada empresa no cadastro, define o plano e o preço por utilizador/mês
+// (teto 100 USD), e mostra o custo mensal de acesso resultante.
+//
+// A LISTA DE PLANOS VEM DE /api/planos, e não escrita aqui.
+//
+// Estava escrita à mão, com dois valores: BASICO e PRO. A escada real tem três
+// — BASE, CORE, PRO — e BASICO é o ALIAS LEGADO que o servidor mapeia para
+// CORE. O efeito não era cosmético: este ecrã é o único sítio onde se muda o
+// plano de uma empresa, e por ele era impossível pôr alguém em BASE ou nomear
+// CORE. As duas apareciam coladas como "Básico", e um Admin a olhar para a
+// plataforma via um mundo de dois planos enquanto se vendiam três.
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api } from '../../api/client';
+import { formatUsd } from '../../domain';
+import { Crumbs, PageHead, KpiRow, Pill, Toolbar, EmptyRow } from '../../components/BuyerUI';
+import { useI18n } from '../../i18n';
+import { SuccessBanner } from '../../components/Common';
+
+const SIZES = ['MICRO', 'PEQUENA', 'MEDIA', 'GRANDE'];
+const SIZE_LABEL = { MICRO: 'Micro', PEQUENA: 'Pequena', MEDIA: 'Média', GRANDE: 'Grande' };
+// O tom é por degrau da escada; o alias legado herda o do CORE, que é o plano
+// para onde o servidor o mapeia.
+const PLAN_TONE = { PRO: 'success', CORE: 'info', BASE: 'neutral', BASICO: 'info' };
+
+
+export default function AdminPlans() {
+  const { t } = useI18n();
+  const [companies, setCompanies] = useState(null);
+  const [subs, setSubs] = useState({});   // companyId -> subscrição
+  const [q, setQ] = useState('');
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ size: 'PEQUENA', plan: 'BASICO', seatPriceUsd: 100, planNotes: '' });
+  const [error, setError] = useState('');
+  // Confirmação depois da API responder — nunca antes. Um "guardado"
+  // mostrado antes do servidor confirmar é uma mentira com bom aspeto.
+  const [sucesso, setSucesso] = useState('');
+  const [saving, setSaving] = useState(false);
+  // A escada real, tal como o servidor a publica. Vazia enquanto carrega — e
+  // nesse intervalo o <select> mostra apenas o plano atual da empresa, em vez
+  // de oferecer uma lista inventada.
+  const [planos, setPlanos] = useState([]);
+
+  useEffect(() => {
+    api.get('/api/planos')
+      .then((r) => setPlanos((r.planos || []).map((p) => p.plano)))
+      .catch(() => setPlanos([]));
+  }, []);
+
+  function load() {
+    // UM pedido, e não um por empresa.
+    //
+    // Isto pedia a lista e depois a subscrição de CADA empresa, uma a uma. Com
+    // as duas empresas de demonstração passava despercebido; com duzentas eram
+    // ~204 pedidos por abertura da página. O limitador da plataforma é de 600
+    // por 15 minutos e por utilizador — o Admin trancava-se a si próprio ao
+    // terceiro carregamento, e a mensagem que via era "demasiados pedidos",
+    // que não aponta para aqui.
+    api.get('/api/companies', { comSubscricao: 'true' })
+      .then((list) => {
+        setCompanies(list);
+        setSubs(Object.fromEntries(list.map((c) => [c.id, c.subscricao || null])));
+      })
+      .catch((e) => setError(e.message));
+  }
+  useEffect(load, []);
+
+  function startEdit(c) {
+    setEditing(c.id);
+    setForm({
+      size: c.size || 'PEQUENA',
+      plan: c.plan || 'BASICO',
+      seatPriceUsd: Number(c.seatPriceUsd ?? 100),
+      planNotes: c.planNotes || '',
+    });
+    setError('');
+  }
+
+  async function save(companyId) {
+    setSaving(true); setError('');
+    try {
+      await api.put(`/api/companies/${companyId}/plan`, {
+        size: form.size, plan: form.plan,
+        seatPriceUsd: Number(form.seatPriceUsd),
+        planNotes: form.planNotes,
+      });
+      setEditing(null);
+      setSucesso(t('Plano da empresa atualizado.'));
+      setTimeout(() => setSucesso(''), 3500);
+      load();
+    } catch (e) { setError(e.message); } finally { setSaving(false); }
+  }
+
+  let rows = companies || [];
+  if (q) {
+    const s = q.toLowerCase();
+    rows = rows.filter((c) => (c.name || '').toLowerCase().includes(s) || (c.taxId || '').toLowerCase().includes(s));
+  }
+
+  const totalMensal = Object.values(subs).reduce((sum, s) => sum + (s?.monthly?.amountUsd || 0), 0);
+  const pro = rows.filter((c) => c.plan === 'PRO').length;
+  const grandes = rows.filter((c) => c.size === 'GRANDE').length;
+
+  return (
+    <div>
+      <Crumbs trail={['Configurações e Suporte', 'Planos e Subscrições']} />
+      <PageHead
+        title="Planos e Subscrições"
+        subtitle="Dimensão da empresa (critério MPME), plano contratado e taxa de acesso por utilizador. Empresas de grande dimensão têm de subscrever o plano PRO."
+        actions={
+          /* O plano mexe-se em dois sítios: à mão aqui (correções, casos
+             especiais) e pela via paga, na fila das cobranças. Quem abre esta
+             página à procura de um pagamento por confirmar tem de ter por onde
+             ir — senão altera o plano à mão e a cobrança fica pendurada. */
+          <Link className="btn btn-ghost" to="/sistema/cobrancas">{t('Cobranças de subscrição')}</Link>
+        }
+      />
+
+      <KpiRow cards={[
+        { icon: 'building', tone: 'info', label: 'Empresas', value: rows.length, sub: 'Credenciadas' },
+        { icon: 'offshore', tone: 'success', label: 'No plano PRO', value: pro, sub: 'Com integração ERP' },
+        { icon: 'users', tone: 'pending', label: 'Grandes empresas', value: grandes, sub: 'Exigem PRO' },
+        { icon: 'wallet', tone: 'success', label: 'Acesso mensal', value: formatUsd(totalMensal), sub: 'Total faturável/mês' },
+      ]} />
+
+      <Toolbar placeholder="Pesquisar por empresa ou NIF…" q={q} onQ={setQ} />
+
+      <SuccessBanner message={sucesso} />
+      {error ? <div className="banner banner-error" style={{ marginBottom: 12 }}>{error}</div> : null}
+
+      <div className="bz-card bz-tablewrap">
+        <table className="bz-table">
+          <thead>
+            <tr>
+              <th>{t('Empresa')}</th><th>{t('Dimensão')}</th><th>{t('Trabalhadores')}</th>
+              <th>{t('Plano')}</th><th>{t('Preço/utilizador')}</th><th>{t('Utilizadores')}</th>
+              <th>{t('Custo mensal')}</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {!companies ? <tr><td colSpan={8}><EmptyRow>A carregar…</EmptyRow></td></tr>
+              : rows.length === 0 ? <tr><td colSpan={8}><EmptyRow>Nenhuma empresa encontrada</EmptyRow></td></tr>
+              : rows.map((c) => {
+                const sub = subs[c.id];
+                const isEditing = editing === c.id;
+                return (
+                  <tr key={c.id}>
+                    <td><strong>{c.name}</strong><span className="bz-sub2 mono">{c.taxId}</span></td>
+                    <td>
+                      {isEditing ? (
+                        <select className="input" aria-label={t('Dimensão da empresa')} value={form.size} onChange={(e) => setForm((f) => ({ ...f, size: e.target.value }))}>
+                          {SIZES.map((s) => <option key={s} value={s}>{t(SIZE_LABEL[s])}</option>)}
+                        </select>
+                      ) : <Pill tone={c.size === 'GRANDE' ? 'pending' : 'neutral'}>{SIZE_LABEL[c.size] || c.size}</Pill>}
+                    </td>
+                    <td className="bz-muted">{c.employees ?? '—'}</td>
+                    <td>
+                      {isEditing ? (
+                        <select className="input" aria-label={t('Plano')} value={form.plan} onChange={(e) => setForm((f) => ({ ...f, plan: e.target.value }))}>
+                          {/* Se a empresa estiver num plano fora da escada (o
+                              alias legado BASICO), ele aparece na lista para
+                              não desaparecer em silêncio ao abrir a edição. */}
+                          {(planos.includes(form.plan) ? planos : [form.plan, ...planos]).map((p) => (
+                            <option key={p} value={p}>{p}</option>
+                          ))}
+                        </select>
+                      ) : <Pill tone={PLAN_TONE[c.plan] || 'neutral'}>{c.plan}</Pill>}
+                    </td>
+                    <td>
+                      {isEditing ? (
+                        <input className="input" type="number" min="0" max="100" step="1"
+                          value={form.seatPriceUsd}
+                          onChange={(e) => setForm((f) => ({ ...f, seatPriceUsd: e.target.value }))} />
+                      ) : formatUsd(c.seatPriceUsd)}
+                    </td>
+                    <td className="bz-muted">{sub?.activeUsers ?? '—'}</td>
+                    <td><strong>{sub ? formatUsd(sub.monthly.amountUsd) : '—'}</strong></td>
+                    <td>
+                      {isEditing ? (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button className="btn btn-accent btn-sm" disabled={saving} onClick={() => save(c.id)}>
+                            {saving ? t('A guardar…') : t('Guardar')}
+                          </button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>{t('Cancelar')}</button>
+                        </div>
+                      ) : (
+                        <button className="btn btn-ghost btn-sm" onClick={() => startEdit(c)}>{t('Editar')}</button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

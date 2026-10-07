@@ -1,0 +1,8 @@
+node_modules/
+# dist é versionado (deploy de serviço único) — ver .gitignore da raiz.
+.env
+.env.local
+*.log
+e2e/.sessoes/
+test-results/
+playwright-report/

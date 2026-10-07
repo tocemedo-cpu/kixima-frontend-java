@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-AO">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/images/kixima-logo.png" />
+    <title>KIXIMA.NET | The state of the art do procurement à execução</title>
+    <meta name="description" content="E-marketplace B2B Source-to-Pay, nascido em Angola e preparado para África." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="KIXIMA.NET | The state of the art do procurement à execução" />
+    <meta property="og:description" content="E-marketplace B2B Source-to-Pay, nascido em Angola e preparado para África." />
+    <meta property="og:image" content="/images/kixima-og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="KIXIMA.NET | The state of the art do procurement à execução" />
+    <meta name="twitter:description" content="E-marketplace B2B Source-to-Pay, nascido em Angola e preparado para África." />
+    <meta name="twitter:image" content="/images/kixima-og.png" />
+    <!-- Tipos de letra (Sora / Inter / IBM Plex Mono) são self-hosted via
+         @fontsource, importados em src/main.jsx — sem dependência de CDN externo. -->
+    <!-- Fundo escolhido (Claro / Escuro 1 / Escuro 2) aplicado antes do primeiro
+         paint, para não haver um clarão do fundo errado; sem escolha guardada o
+         CSS segue o sistema (prefers-color-scheme). Ver src/tema/TemaContext.jsx. -->
+    <script>
+      try {
+        var t = localStorage.getItem('kixima.tema');
+        if (t === 'claro' || t === 'escuro-1' || t === 'escuro-2') document.documentElement.setAttribute('data-tema', t);
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

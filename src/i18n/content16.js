@@ -1,0 +1,37 @@
+// src/i18n/content16.js
+// Traduções EN/FR para o Admin do Sistema → Configurações e Suporte →
+// Solicitar Série (pages/adminSistema/SolicitarSerie.jsx).
+
+export const EN17 = {
+  'Solicitar Série': 'Request Series',
+  'Tipo de documento': 'Document type',
+  'A submeter…': 'Submitting…',
+  'Gerar e submeter pedido': 'Generate and submit request',
+  'Séries já atribuídas pela AGT': 'Series already assigned by the AGT',
+  'Histórico gravado na base de dados (tabela agtseriesfe) — só entra aqui um pedido depois de a AGT o aceitar.':
+    'History stored in the database (agtseriesfe table) — a request only lands here after the AGT accepts it.',
+  'Ano': 'Year',
+  'Série atribuída': 'Assigned series',
+  'Intervalo autorizado': 'Authorized range',
+  'Qtd. autorizada': 'Authorized qty.',
+  'Pedido em': 'Requested on',
+  'A carregar…': 'Loading…',
+  'Nenhuma série pedida ainda.': 'No series requested yet.',
+};
+
+export const FR17 = {
+  'Solicitar Série': 'Demander une série',
+  'Tipo de documento': 'Type de document',
+  'A submeter…': 'Envoi en cours…',
+  'Gerar e submeter pedido': 'Générer et soumettre la demande',
+  'Séries já atribuídas pela AGT': "Séries déjà attribuées par l'AGT",
+  'Histórico gravado na base de dados (tabela agtseriesfe) — só entra aqui um pedido depois de a AGT o aceitar.':
+    "Historique enregistré dans la base de données (table agtseriesfe) — une demande n'y figure qu'après acceptation par l'AGT.",
+  'Ano': 'Année',
+  'Série atribuída': 'Série attribuée',
+  'Intervalo autorizado': 'Plage autorisée',
+  'Qtd. autorizada': 'Qté autorisée',
+  'Pedido em': 'Demandée le',
+  'A carregar…': 'Chargement…',
+  'Nenhuma série pedida ainda.': 'Aucune série demandée pour le moment.',
+};

@@ -1,0 +1,93 @@
+// src/components/MarketAside.jsx
+// Coluna direita do marketplace: mini-cesta (subtotal + IVA + total) e
+// "Ordens em andamento" com contagens reais por estado.
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../api/client';
+import { formatMoney, computeCartTotals } from '../domain';
+import { useCart } from '../pages/comprador/CartContext';
+import ProductCover from './ProductCover';
+import { Icon } from './icons';
+import { useI18n } from '../i18n';
+
+const BUCKETS = [
+  { label: 'Aguardando pagamento', statuses: ['AGUARDANDO_APROVACAO', 'APROVADA', 'ACEITE_FORNECEDOR', 'AGUARDANDO_PAGAMENTO'], icon: 'payment' },
+  { label: 'Em execução', statuses: ['EM_EXECUCAO', 'PAGA'], icon: 'orders' },
+  { label: 'Em entrega', statuses: ['ENTREGUE'], icon: 'truck' },
+  { label: 'Recebidas', statuses: ['RECEBIDA_CONFORME', 'CONCLUIDA'], icon: 'reception' },
+];
+
+export default function MarketAside() {
+  const { t } = useI18n();
+  const { items, total, updateQuantity, removeItem } = useCart();
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    api.get('/api/purchase-orders').then(setOrders).catch(() => {});
+  }, []);
+
+  const totals = computeCartTotals(total);
+  const countFor = (statuses) => orders.filter((o) => statuses.includes(o.status)).length;
+
+  return (
+    <aside className="market-aside">
+      <div className="aside-card">
+        <div className="aside-head">
+          <span><Icon name="cart" size={16} /> {t('Minha Cesta')}</span>
+          <span className="aside-pill">{items.reduce((s, i) => s + i.quantity, 0)}</span>
+        </div>
+
+        {items.length === 0 ? (
+          <p className="aside-empty">{t('A sua cesta está vazia. Adicione itens do marketplace.')}</p>
+        ) : (
+          <>
+            <div className="aside-items">
+              {items.map((i) => (
+                <div key={i.product.id} className="aside-item">
+                  <span className="aside-thumb"><ProductCover imageUrl={i.product.imageUrl} category={i.product.category} caption={false} /></span>
+                  <div className="aside-item-main">
+                    <div className="aside-item-name">{i.product.name}</div>
+                    <div className="aside-item-qty">
+                      <button onClick={() => updateQuantity(i.product.id, i.quantity - 1)} aria-label={t('Menos')}>−</button>
+                      <span>{i.quantity}</span>
+                      <button onClick={() => updateQuantity(i.product.id, i.quantity + 1)} aria-label={t('Mais')}>+</button>
+                      <button className="aside-remove" onClick={() => removeItem(i.product.id)} aria-label={t('Remover')}>✕</button>
+                    </div>
+                  </div>
+                  <span className="aside-item-price mono">{formatMoney(Number(i.product.unitPrice) * i.quantity, i.product.currency)}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="aside-totals">
+              <div><span>{t('Subtotal')}</span><span className="mono">{formatMoney(totals.subtotal)}</span></div>
+              <div><span>{t('IVA (14%)')}</span><span className="mono">{formatMoney(totals.iva)}</span></div>
+              <div className="aside-total"><span>{t('Total')}</span><span className="mono">{formatMoney(totals.total)}</span></div>
+            </div>
+
+            <button className="btn btn-accent" style={{ width: '100%' }} onClick={() => navigate('/comprador/cesta')}>
+              {t('Finalizar Compra')}
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="aside-card">
+        <div className="aside-head">
+          <span><Icon name="orders" size={16} /> {t('Ordens em andamento')}</span>
+          <button className="aside-link" onClick={() => navigate('/comprador/ordens')}>{t('Ver todas')} →</button>
+        </div>
+        <div className="aside-orders">
+          {BUCKETS.map((b) => (
+            <div key={b.label} className="aside-order-row" onClick={() => navigate('/comprador/ordens')}>
+              <span className="aside-order-ic"><Icon name={b.icon} size={15} /></span>
+              <span className="aside-order-label">{t(b.label)}</span>
+              <span className="aside-order-count">{countFor(b.statuses)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+}

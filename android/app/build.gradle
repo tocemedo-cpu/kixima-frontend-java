@@ -1,0 +1,85 @@
+apply plugin: 'com.android.application'
+
+// Assinatura de release: só existe fora deste ficheiro (variáveis de
+// ambiente do workflow android-release.yml, ver .github/workflows/), nunca
+// aqui nem num keystore no repositório. Sem essas variáveis (build local,
+// android-build.yml de validação) o buildType release fica exatamente como
+// estava antes — sem signingConfig, tal como sempre foi.
+def releaseStoreFile = System.getenv("KIXIMA_RELEASE_STORE_FILE")
+// Calculados ANTES do bloco android {} de propósito: `versionCode (expr).toInteger()`
+// dentro do defaultConfig analisa-se em Groovy como `versionCode(expr).toInteger()` —
+// chama primeiro o setter (que devolve null) e só depois tenta `.toInteger()` nesse
+// null. Foi exatamente isto que partiu o build de debug no CI ("Value is null").
+def releaseVersionCode = (System.getenv("KIXIMA_VERSION_CODE") ?: "1").toInteger()
+def releaseVersionName = System.getenv("KIXIMA_VERSION_NAME") ?: "1.0"
+
+android {
+    namespace = "net.kixima.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "net.kixima.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        // A Play Store exige um versionCode sempre crescente a cada envio —
+        // o número de execução do próprio workflow (ver android-release.yml)
+        // serve esse propósito sem guardar estado nenhum aqui. Sem essa
+        // variável (build local, android-build.yml de validação) mantém-se
+        // 1/"1.0", exatamente como antes desta alteração.
+        versionCode releaseVersionCode
+        versionName releaseVersionName
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        release {
+            if (releaseStoreFile) {
+                storeFile file(releaseStoreFile)
+                storePassword System.getenv("KIXIMA_RELEASE_STORE_PASSWORD")
+                keyAlias System.getenv("KIXIMA_RELEASE_KEY_ALIAS")
+                keyPassword System.getenv("KIXIMA_RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (releaseStoreFile) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

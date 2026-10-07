@@ -1,0 +1,7 @@
+O logótipo oficial da KIXIMA já não depende de um ficheiro colocado aqui à
+mão: vive versionado em src/assets/brand/ (kixima-mark.png e
+kixima-mark-reversed.png) e é usado por toda a app através de
+src/components/Logo.jsx — sidebar, topbar, login, cadastro, convites, etc.
+
+O único ficheiro que continua aqui é public/images/kixima-logo.png, e serve
+apenas de favicon (ver index.html) — é uma cópia do mesmo kixima-mark.png.
