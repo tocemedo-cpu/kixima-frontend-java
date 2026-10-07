@@ -39,7 +39,7 @@ async function aindaServe(ficheiro, baseURL) {
   const browser = await chromium.launch(existsSync(CHROMIUM) ? { executablePath: CHROMIUM } : {});
   try {
     const ctx = await browser.newContext({ storageState: ficheiro, baseURL });
-    const r = await ctx.request.get(`${baseURL.replace('5173', '4000')}/api/auth/me`);
+    const r = await ctx.request.get(`${baseURL.replace('5173', '4001')}/api/auth/me`);
     return r.ok();
   } catch {
     return false;
