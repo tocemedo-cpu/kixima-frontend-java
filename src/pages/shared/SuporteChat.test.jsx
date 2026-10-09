@@ -18,10 +18,9 @@ vi.mock('../../api/client', () => ({
 let mockUser = { id: 'u1', role: 'COMPRADOR', adminAreas: [] };
 vi.mock('../../auth/AuthContext', () => ({ useAuth: () => ({ user: mockUser }) }));
 
-const joinTicket = vi.fn();
-const leaveTicket = vi.fn();
+const subscribeTicket = vi.fn(() => () => {});
 vi.mock('../../realtime/RealtimeContext', () => ({
-  useRealtime: () => ({ socket: null, connected: false, joinTicket, leaveTicket, joinConversation: vi.fn(), leaveConversation: vi.fn() }),
+  useRealtime: () => ({ connected: false, subscribeNotifications: () => () => {}, subscribeTicket, subscribeConversation: () => () => {} }),
 }));
 
 // eslint-disable-next-line import/first
@@ -38,7 +37,7 @@ const TICKETS = [
 beforeEach(() => {
   apiGet.mockReset(); apiPost.mockReset(); apiPostForm.mockReset();
   apiPost.mockResolvedValue({});
-  joinTicket.mockReset(); leaveTicket.mockReset();
+  subscribeTicket.mockReset(); subscribeTicket.mockReturnValue(() => {});
   mockUser = { id: 'u1', role: 'COMPRADOR', adminAreas: [] };
   apiGet.mockImplementation((url) => {
     if (url === '/api/support/tickets') return Promise.resolve(TICKETS);
@@ -56,11 +55,11 @@ describe('Vista do utilizador', () => {
     expect(screen.getByText('#SUP-2026-00001')).toBeInTheDocument();
   });
 
-  test('abrir um pedido carrega o histórico e entra na sala do socket', async () => {
+  test('abrir um pedido carrega o histórico e subscreve o destino do ticket', async () => {
     montar();
     fireEvent.click(await screen.findByText('Fatura em falta'));
     expect(await screen.findByText('Olá, preciso de ajuda.')).toBeInTheDocument();
-    await waitFor(() => expect(joinTicket).toHaveBeenCalledWith('t1'));
+    await waitFor(() => expect(subscribeTicket).toHaveBeenCalledWith('t1', expect.anything()));
     await waitFor(() => expect(apiPost).toHaveBeenCalledWith('/api/support/tickets/t1/read'));
   });
 

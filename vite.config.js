@@ -14,13 +14,11 @@ export default defineConfig({
         target: 'http://localhost:4001',
         changeOrigin: true,
       },
-      // Chat de Suporte / Chat Comercial em tempo real — mesma origem lógica
-      // que a API, precisa de `ws: true` porque é uma ligação WebSocket, não
-      // um pedido HTTP normal. Ainda aponta ao caminho Socket.IO: o backend
-      // Java fala STOMP nativo (WebSocketConfig.java), não Socket.IO — o
-      // protocolo em si fica por resolver à parte (ver auditoria), isto só
-      // corrige a porta.
-      '/socket.io': {
+      // Chat de Suporte / Chat Comercial / notificações em tempo real —
+      // mesma origem lógica que a API, precisa de `ws: true` porque é uma
+      // ligação WebSocket, não um pedido HTTP normal. STOMP nativo
+      // (WebSocketConfig.java no backend), endpoint /ws.
+      '/ws': {
         target: 'http://localhost:4001',
         changeOrigin: true,
         ws: true,

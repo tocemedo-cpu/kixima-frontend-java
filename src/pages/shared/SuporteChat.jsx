@@ -84,7 +84,7 @@ function UserPanel() {
 function TicketThread({ ticket, onUpdated }) {
   const { t } = useI18n();
   const { user } = useAuth();
-  const { joinTicket, leaveTicket, socket } = useRealtime();
+  const { subscribeTicket } = useRealtime();
   const [messages, setMessages] = useState([]);
   const [busy, setBusy] = useState(true);
   const [status, setStatus] = useState(ticket.status);
@@ -94,19 +94,14 @@ function TicketThread({ ticket, onUpdated }) {
     setBusy(true);
     api.get(`/api/support/tickets/${ticket.id}/messages`).then(setMessages).catch(() => {}).finally(() => setBusy(false));
     api.post(`/api/support/tickets/${ticket.id}/read`).catch(() => {});
-    joinTicket(ticket.id);
-    return () => leaveTicket(ticket.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket.id]);
 
-  useEffect(() => {
-    if (!socket) return undefined;
-    function onMessage(m) { if (m.ticketId === ticket.id) setMessages((prev) => [...prev, m]); }
-    function onUpdatedTicket(t2) { if (t2.id === ticket.id) { setStatus(t2.status); onUpdated(); } }
-    socket.on('support:message', onMessage);
-    socket.on('support:updated', onUpdatedTicket);
-    return () => { socket.off('support:message', onMessage); socket.off('support:updated', onUpdatedTicket); };
-  }, [socket, ticket.id, onUpdated]);
+  // Subscrever o destino É o pedido de acesso (ver RealtimeContext.jsx) — não
+  // há mais "join"/"leave" separados, só a subscrição em si.
+  useEffect(() => subscribeTicket(ticket.id, {
+    'support:message': (m) => { if (m.ticketId === ticket.id) setMessages((prev) => [...prev, m]); },
+    'support:updated': (t2) => { if (t2.id === ticket.id) { setStatus(t2.status); onUpdated(); } },
+  }), [subscribeTicket, ticket.id, onUpdated]);
 
   async function send(body, file) {
     await enviarComAnexo(`/api/support/tickets/${ticket.id}/messages`, body, file);
@@ -222,7 +217,7 @@ function AgentPanel() {
 function AgentTicketThread({ ticketId, onChanged }) {
   const { t } = useI18n();
   const { user } = useAuth();
-  const { joinTicket, leaveTicket, socket } = useRealtime();
+  const { subscribeTicket } = useRealtime();
   const [ticket, setTicket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [busy, setBusy] = useState(true);
@@ -238,21 +233,12 @@ function AgentTicketThread({ ticketId, onChanged }) {
     ]).then(([tk, msgs]) => { setTicket(tk); setMessages(msgs); }).finally(() => setBusy(false));
   }, [ticketId]);
 
-  useEffect(() => {
-    load();
-    joinTicket(ticketId);
-    return () => leaveTicket(ticketId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticketId]);
+  useEffect(() => { load(); }, [ticketId, load]);
 
-  useEffect(() => {
-    if (!socket) return undefined;
-    function onMessage(m) { if (m.ticketId === ticketId) setMessages((prev) => [...prev, m]); }
-    function onUpdatedTicket(t2) { if (t2.id === ticketId) setTicket(t2); }
-    socket.on('support:message', onMessage);
-    socket.on('support:updated', onUpdatedTicket);
-    return () => { socket.off('support:message', onMessage); socket.off('support:updated', onUpdatedTicket); };
-  }, [socket, ticketId]);
+  useEffect(() => subscribeTicket(ticketId, {
+    'support:message': (m) => { if (m.ticketId === ticketId) setMessages((prev) => [...prev, m]); },
+    'support:updated': (t2) => { if (t2.id === ticketId) setTicket(t2); },
+  }), [subscribeTicket, ticketId]);
 
   async function send(body, file) {
     await enviarComAnexo(`/api/support/tickets/${ticketId}/messages`, body, file);

@@ -25,7 +25,7 @@ export default function AppLayout() {
   const [porLer, setPorLer] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const { count: cartCount } = useCart();
-  const { socket } = useRealtime();
+  const { subscribeNotifications } = useRealtime();
   // Três contadores SEPARADOS do sino de notificações genérico — "Suporte: X
   // mensagens", "Chat Comercial: X mensagens", "Alertas de Segurança: X" não
   // se misturam entre si nem com o resto (ver a regra explícita do pedido).
@@ -80,20 +80,15 @@ export default function AppLayout() {
   }, [user?.id]);
 
   // Em vez de voltar a pedir por HTTP a cada navegação, os contadores sobem
-  // ao vivo pelo mesmo evento que o sino de notificações já recebe — reutiliza
-  // a ligação Socket.IO, sem pedido extra nenhum. Só SOBE: descer é sempre que
+  // ao vivo pela mesma notificação que o sino genérico já recebe — reutiliza
+  // a ligação STOMP, sem pedido extra nenhum. Só SOBE: descer é sempre que
   // a própria conversa é aberta e marcada como lida (ver SuporteChat/
   // ChatComercial), que é a mesma regra que já vale para o sino genérico.
-  useEffect(() => {
-    if (!socket) return undefined;
-    function onNotification(n) {
-      if (n.type === 'SUPORTE_MENSAGEM') setSuporteNaoLidas((c) => c + 1);
-      else if (n.type === 'CHAT_COMERCIAL_MENSAGEM') setComercialNaoLidas((c) => c + 1);
-      else if (n.type === 'ALERTA_SEGURANCA') setAlertasAbertos((c) => c + 1);
-    }
-    socket.on('notification:new', onNotification);
-    return () => socket.off('notification:new', onNotification);
-  }, [socket]);
+  useEffect(() => subscribeNotifications((n) => {
+    if (n.type === 'SUPORTE_MENSAGEM') setSuporteNaoLidas((c) => c + 1);
+    else if (n.type === 'CHAT_COMERCIAL_MENSAGEM') setComercialNaoLidas((c) => c + 1);
+    else if (n.type === 'ALERTA_SEGURANCA') setAlertasAbertos((c) => c + 1);
+  }), [subscribeNotifications]);
 
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 

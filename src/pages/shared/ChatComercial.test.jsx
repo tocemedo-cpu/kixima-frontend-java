@@ -15,10 +15,9 @@ vi.mock('../../api/client', () => ({
 
 vi.mock('../../auth/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1', companyId: 'c-buyer' } }) }));
 
-const joinConversation = vi.fn();
-const leaveConversation = vi.fn();
+const subscribeConversation = vi.fn(() => () => {});
 vi.mock('../../realtime/RealtimeContext', () => ({
-  useRealtime: () => ({ socket: null, connected: false, joinTicket: vi.fn(), leaveTicket: vi.fn(), joinConversation, leaveConversation }),
+  useRealtime: () => ({ connected: false, subscribeNotifications: () => () => {}, subscribeTicket: () => () => {}, subscribeConversation }),
 }));
 
 // eslint-disable-next-line import/first
@@ -35,7 +34,7 @@ function montar() {
 beforeEach(() => {
   apiGet.mockReset(); apiPost.mockReset(); apiPostForm.mockReset();
   apiPost.mockResolvedValue({});
-  joinConversation.mockReset(); leaveConversation.mockReset();
+  subscribeConversation.mockReset(); subscribeConversation.mockReturnValue(() => {});
   apiGet.mockImplementation((url) => {
     if (url === '/api/conversations') return Promise.resolve(CONVERSAS);
     if (url === '/api/conversations/conv1/messages') return Promise.resolve([
@@ -56,12 +55,12 @@ test('sem conversas, mostra o convite a iniciar uma a partir de um produto/pedid
   expect(await screen.findByText('Sem conversas ainda — inicie uma a partir de um produto ou de um pedido.')).toBeInTheDocument();
 });
 
-test('abrir uma conversa mostra as mensagens, o aviso de segurança, e entra na sala do socket', async () => {
+test('abrir uma conversa mostra as mensagens, o aviso de segurança, e subscreve o destino da conversa', async () => {
   montar();
   fireEvent.click(await screen.findByText('Fornecedora Kianda'));
   expect(await screen.findByText('Bom dia')).toBeInTheDocument();
   expect(screen.getByText(/recomendamos manter a negociação e o pagamento dentro do Kixima/)).toBeInTheDocument();
-  await waitFor(() => expect(joinConversation).toHaveBeenCalledWith('conv1'));
+  await waitFor(() => expect(subscribeConversation).toHaveBeenCalledWith('conv1', expect.anything()));
   await waitFor(() => expect(apiPost).toHaveBeenCalledWith('/api/conversations/conv1/read'));
 });
 

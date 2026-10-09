@@ -1,20 +1,21 @@
 // src/realtime/RealtimeContext.test.jsx
-// O socket liga-se à MESMA base e ao MESMO Bearer que a API REST (ver
+// A ligação STOMP usa a MESMA base e o MESMO Bearer que a API REST (ver
 // api/client.js) — dentro do Capacitor, '/' e o cookie sozinho não chegam,
 // exatamente como já não chegavam para o fetch antes dessa correção.
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 
-const ioMock = vi.fn(() => ({
-  on: vi.fn(),
-  emit: vi.fn(),
-  disconnect: vi.fn(),
-}));
-vi.mock('socket.io-client', () => ({ io: (...a) => ioMock(...a) }));
+const activate = vi.fn();
+const deactivate = vi.fn();
+const ClientMock = vi.fn(function Client() {
+  return { activate, deactivate, subscribe: vi.fn() };
+});
+vi.mock('@stomp/stompjs', () => ({ Client: ClientMock }));
 
 async function carregarComo({ nativo, user }) {
   vi.resetModules();
-  ioMock.mockClear();
+  ClientMock.mockClear();
+  activate.mockClear();
   if (nativo) window.Capacitor = { isNativePlatform: () => true };
   else delete window.Capacitor;
 
@@ -27,31 +28,31 @@ async function carregarComo({ nativo, user }) {
 beforeEach(() => { delete window.Capacitor; });
 afterEach(() => { delete window.Capacitor; vi.doUnmock('../auth/AuthContext'); });
 
-test('Web: liga a "/" (mesma origem), sem token no handshake', async () => {
+test('Web: liga a /ws na origem actual, sem cabeçalho Authorization', async () => {
   const { RealtimeProvider } = await carregarComo({ nativo: false, user: { id: 'u1' } });
   render(<RealtimeProvider>{null}</RealtimeProvider>);
 
-  await waitFor(() => expect(ioMock).toHaveBeenCalled());
-  const [url, opts] = ioMock.mock.calls[0];
-  expect(url).toBe('/');
-  expect(opts.auth).toBeUndefined();
-  expect(opts.withCredentials).toBe(true);
+  await waitFor(() => expect(ClientMock).toHaveBeenCalled());
+  const [opts] = ClientMock.mock.calls[0];
+  expect(opts.brokerURL).toBe(`${window.location.origin.replace(/^http/, 'ws')}/ws`);
+  expect(opts.connectHeaders).toEqual({});
+  expect(activate).toHaveBeenCalled();
 });
 
-test('Capacitor nativo: liga a https://kixima.net, com o Bearer em memória no handshake', async () => {
+test('Capacitor nativo: liga a wss://kixima.net/ws, com o Bearer em memória no cabeçalho', async () => {
   const { clientModule, RealtimeProvider } = await carregarComo({ nativo: true, user: { id: 'u1' } });
   clientModule.definirBearerNativo('jwt-de-teste');
 
   render(<RealtimeProvider>{null}</RealtimeProvider>);
 
-  await waitFor(() => expect(ioMock).toHaveBeenCalled());
-  const [url, opts] = ioMock.mock.calls[0];
-  expect(url).toBe('https://kixima.net');
-  expect(opts.auth).toEqual({ token: 'jwt-de-teste' });
+  await waitFor(() => expect(ClientMock).toHaveBeenCalled());
+  const [opts] = ClientMock.mock.calls[0];
+  expect(opts.brokerURL).toBe('wss://kixima.net/ws');
+  expect(opts.connectHeaders).toEqual({ Authorization: 'Bearer jwt-de-teste' });
 });
 
-test('sem utilizador, não liga socket nenhum', async () => {
+test('sem utilizador, não cria ligação nenhuma', async () => {
   const { RealtimeProvider } = await carregarComo({ nativo: false, user: null });
   render(<RealtimeProvider>{null}</RealtimeProvider>);
-  expect(ioMock).not.toHaveBeenCalled();
+  expect(ClientMock).not.toHaveBeenCalled();
 });

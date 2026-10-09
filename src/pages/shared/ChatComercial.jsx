@@ -70,7 +70,7 @@ export default function ChatComercial() {
 function ConversationThread({ conversation, onUpdated }) {
   const { t } = useI18n();
   const { user } = useAuth();
-  const { joinConversation, leaveConversation, socket } = useRealtime();
+  const { subscribeConversation } = useRealtime();
   const [messages, setMessages] = useState([]);
   const [busy, setBusy] = useState(true);
 
@@ -78,17 +78,11 @@ function ConversationThread({ conversation, onUpdated }) {
     setBusy(true);
     api.get(`/api/conversations/${conversation.id}/messages`).then(setMessages).catch(() => {}).finally(() => setBusy(false));
     api.post(`/api/conversations/${conversation.id}/read`).catch(() => {});
-    joinConversation(conversation.id);
-    return () => leaveConversation(conversation.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation.id]);
 
-  useEffect(() => {
-    if (!socket) return undefined;
-    function onMessage(m) { if (m.conversationId === conversation.id) { setMessages((prev) => [...prev, m]); onUpdated(); } }
-    socket.on('conversation:message', onMessage);
-    return () => socket.off('conversation:message', onMessage);
-  }, [socket, conversation.id, onUpdated]);
+  useEffect(() => subscribeConversation(conversation.id, {
+    'conversation:message': (m) => { if (m.conversationId === conversation.id) { setMessages((prev) => [...prev, m]); onUpdated(); } },
+  }), [subscribeConversation, conversation.id, onUpdated]);
 
   async function send(body, file) {
     await enviarComAnexo(`/api/conversations/${conversation.id}/messages`, body, file);
