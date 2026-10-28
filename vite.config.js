@@ -5,13 +5,17 @@ import react from '@vitejs/plugin-react';
 // KIXIMA — frontend dev server. A API do backend Java corre em
 // http://localhost:4001 (application.yml: server.port, omissão 4001). O
 // proxy evita problemas de CORS em desenvolvimento.
+// API_PROXY_TARGET aponta o proxy a outro anfitrião/porta sem mexer no código
+// (ex.: API_PROXY_TARGET=http://192.168.1.20:4001 npm run dev).
+const alvoApi = process.env.API_PROXY_TARGET || 'http://localhost:4001';
+
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:4001',
+        target: alvoApi,
         changeOrigin: true,
       },
       // Chat de Suporte / Chat Comercial / notificações em tempo real —
@@ -19,7 +23,7 @@ export default defineConfig({
       // ligação WebSocket, não um pedido HTTP normal. STOMP nativo
       // (WebSocketConfig.java no backend), endpoint /ws.
       '/ws': {
-        target: 'http://localhost:4001',
+        target: alvoApi,
         changeOrigin: true,
         ws: true,
       },

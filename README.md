@@ -53,13 +53,20 @@ pendentes do Financeiro.
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173, com proxy para a API em :4000
+npm run dev        # http://localhost:5173, com proxy para a API (/api) e o tempo real (/ws) em :4001
 ```
 
-Certifique-se de que o `kixima-backend` está a correr em `localhost:4000`
-(ver README do backend) e que fez `npm run seed` lá para ter os 5
-utilizadores de demonstração. A página de login já vem com atalhos para
-preencher as credenciais de cada persona.
+Certifique-se de que o `kixima-backend-java` está a correr em `localhost:4001`
+**com o perfil `dev`** (`SPRING_PROFILES_ACTIVE=dev`; sem ele o CORS fica
+restrito como em produção e o browser recebe 403 — ver README do backend) e
+que a base de dados tem os utilizadores de demonstração. A página de login já
+vem com atalhos para preencher as credenciais de cada persona.
+
+Para apontar o proxy a outro anfitrião ou porta, sem mexer no código:
+
+```bash
+API_PROXY_TARGET=http://192.168.1.20:4001 npm run dev
+```
 
 ## Estrutura
 
