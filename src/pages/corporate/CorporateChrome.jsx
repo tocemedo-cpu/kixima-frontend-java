@@ -44,11 +44,12 @@ export function buildNavGroups(t) {
   ];
 }
 
-// Um link do menu pode ser âncora de secção da home (começa por "#") ou uma
-// rota real da app. Âncoras passam sempre por "/#secção": as secções só
-// existem na home, e useScrollToHash() trata do scroll assim que lá chega.
+// Um link do menu pode ser âncora de secção da página corporativa (começa por "#")
+// ou uma rota real da app. Âncoras passam sempre por "/sobre#secção": as secções só
+// existem lá, e useScrollToHash() trata do scroll assim que lá chega.
 export function NavLink({ href, className, children }) {
-  const to = href.startsWith('#') ? `/${href}` : href;
+  // A página corporativa vive em /sobre; «/» é a homepage do marketplace.
+  const to = href.startsWith('#') ? `/sobre${href}` : href;
   return <Link to={to} className={className}>{children}</Link>;
 }
 
@@ -59,9 +60,7 @@ export function Brand({ inverse = false, compact = false, isHome = false }) {
   const content = <><img src={inverse ? kiximaMarkReversed : kiximaMark} alt="" /><span className="wm">KIXIMA<i>.NET</i></span></>;
   const className = `lock brand ${compact ? 'brand-compact' : ''}`;
   const label = t('KIXIMA.NET — página inicial');
-  // "#top" só na home, onde <main id="top"> existe — o logótipo faz scroll
-  // até ao topo em vez de navegar. Nas restantes páginas, navega para "/".
-  if (isHome) return <a className={className} href="#top" aria-label={label}>{content}</a>;
+  // O logótipo leva sempre à homepage do marketplace («/»).
   return <Link className={className} to="/" aria-label={label}>{content}</Link>;
 }
 
@@ -158,6 +157,7 @@ export function CorporateHeader({ isHome = false }) {
     <TopStrip />
     <DesktopNavigation />
     <div className="topo-acc header-actions">
+      <Link className="tab-link" to="/produtos">{t('Catálogo')}</Link>
       <Link className="tab-link login-link" to="/login">{t('Entrar')}</Link>
       <Link className="btn pequeno" to="/cadastro">{t('Registar empresa')}</Link>
       <SeletorDeFundo compacto />
@@ -173,7 +173,7 @@ export function CorporateFooter({ isHome = false }) {
   // sempre, mais a linha legal da proposta.
   return <><div className="fio" aria-hidden="true" /><footer className="rodape" id="contactos"><div className="rodape-in"><div className="rodape-grid">
     <div className="rodape-marca"><Brand inverse isHome={isHome} /><p>{t('A fonte do conteúdo local')}</p><LanguageDropdown /></div>
-    <div className="rodape-col"><h3>{t('Plataforma')}</h3><NavLink href="#plataforma">{t('Visão geral')}</NavLink><NavLink href="#demonstracao">{t('Demonstração')}</NavLink><NavLink href="#empresas">{t('Para empresas')}</NavLink><NavLink href="#como-funciona">{t('Como funciona')}</NavLink><Link to="/planos">{t('Planos e preços')}</Link></div>
+    <div className="rodape-col"><h3>{t('Plataforma')}</h3><NavLink href="#plataforma">{t('Visão geral')}</NavLink><NavLink href="#demonstracao">{t('Demonstração')}</NavLink><NavLink href="#empresas">{t('Para empresas')}</NavLink><NavLink href="#como-funciona">{t('Como funciona')}</NavLink><Link to="/planos">{t('Planos e preços')}</Link><Link to="/produtos">{t('Catálogo de produtos e serviços')}</Link><Link to="/fornecedoras">{t('Fornecedoras verificadas')}</Link></div>
     <div className="rodape-col"><h3>{t('Empresa')}</h3><NavLink href="#sobre">{t('Sobre a Kixima')}</NavLink><NavLink href="#roadmap">Roadmap</NavLink><Link to="/noticias">{t('Notícias e perspectivas')}</Link><Link to="/carreiras">{t('Carreiras')}</Link><a href="mailto:geral@kixima.net">{t('Contactos')}</a><Link to="/login">{t('Entrar')}</Link></div>
     <div className="rodape-col"><h3>{t('Confiança')}</h3><NavLink href="#diferenciais">{t('Diferenciais')}</NavLink><NavLink href="#avaliacoes">{t('Avaliações verificadas')}</NavLink><Link to="/faq">{t('Perguntas frequentes')}</Link><Link to="/recursos">{t('Guias e recursos')}</Link><Link to="/supplier-development">Supplier Development</Link><Link to="/parcerias">{t('Parceiros internacionais')}</Link><Link to="/termos">{t('Termos de uso')}</Link><Link to="/privacidade">{t('Privacidade')}</Link></div>
   </div><div className="rodape-fim"><span>{t('© 2026 KIXIMA.NET. Todos os direitos reservados.')}</span><b>{t('NASCIDO EM ANGOLA · PREPARADO PARA ÁFRICA')}</b></div>

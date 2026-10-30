@@ -14,6 +14,14 @@ import { RealtimeProvider } from './realtime/RealtimeContext';
 import LoginPage from './pages/shared/LoginPage';
 
 const CorporateHome = lazy(() => import('./pages/corporate/CorporateHome'));
+// Marketplace público (sem sessão): homepage comercial, catálogo, ficha, fornecedoras e comparação.
+const PublicLayout = lazy(() => import('./pages/mercado/PublicLayout'));
+const MercadoHome = lazy(() => import('./pages/mercado/MercadoHome'));
+const CatalogoPublico = lazy(() => import('./pages/mercado/Catalogo'));
+const ProdutoPublico = lazy(() => import('./pages/mercado/Produto'));
+const FornecedorasPublicas = lazy(() => import('./pages/mercado/Fornecedoras'));
+const FornecedoraPublica = lazy(() => import('./pages/mercado/Fornecedoras').then((m) => ({ default: m.Fornecedora })));
+const CompararPublico = lazy(() => import('./pages/mercado/Comparar'));
 const Noticias = lazy(() => import('./pages/corporate/Noticias'));
 const Carreiras = lazy(() => import('./pages/corporate/Carreiras'));
 const Faq = lazy(() => import('./pages/corporate/Faq'));
@@ -117,15 +125,14 @@ function PageLoading() {
 }
 
 // Autenticado: continua a ir exactamente para o mesmo sítio de sempre — o
-// dashboard do seu papel. Sem sessão: em vez de saltar direto para /login,
-// mostra a home corporativa (ver pages/corporate/CorporateHome.jsx), cujo
-// próprio botão "Entrar" leva ao login real. Nenhum comportamento existente
-// para quem já está autenticado muda.
+// dashboard do seu papel. Sem sessão: mostra a homepage do marketplace público
+// (pages/mercado/MercadoHome.jsx); a página corporativa completa vive agora em
+// /sobre. Nenhum comportamento existente para quem já está autenticado muda.
 function Landing() {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (user) return <Navigate to={ROLE_HOME[user.role]} replace />;
-  return <CorporateHome />;
+  return <MercadoHome />;
 }
 
 // A cesta vive acima do AppLayout para que a sidebar possa mostrar o contador
@@ -144,6 +151,17 @@ export default function App() {
   return (
     <Suspense fallback={<PageLoading />}>
     <Routes>
+      {/* Marketplace público: o catálogo explora-se sem iniciar sessão. «/» continua a mandar quem tem sessão para o seu painel. */}
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<Landing />} />
+        <Route path="/produtos" element={<CatalogoPublico />} />
+        <Route path="/produtos/:slug" element={<ProdutoPublico />} />
+        <Route path="/categorias/:nome" element={<CatalogoPublico porCategoria />} />
+        <Route path="/fornecedoras" element={<FornecedorasPublicas />} />
+        <Route path="/fornecedoras/:id" element={<FornecedoraPublica />} />
+        <Route path="/comparar" element={<CompararPublico />} />
+      </Route>
+
       <Route path="/login" element={<LoginPage />} />
       <Route path="/cadastro" element={<Register />} />
       <Route path="/convite/:token" element={<AcceptInvite />} />
@@ -155,6 +173,7 @@ export default function App() {
       <Route path="/planos" element={<Plans />} />
       <Route path="/termos" element={<Legal kind="termos" />} />
       <Route path="/privacidade" element={<Legal kind="privacidade" />} />
+      <Route path="/sobre" element={<CorporateHome />} />
       <Route path="/noticias" element={<Noticias />} />
       <Route path="/carreiras" element={<Carreiras />} />
       <Route path="/faq" element={<Faq />} />
@@ -288,7 +307,6 @@ export default function App() {
         </Route>
       </Route>
 
-      <Route path="/" element={<Landing />} />
       <Route path="*" element={<Landing />} />
     </Routes>
     </Suspense>

@@ -119,7 +119,7 @@
 .kx .cat { border: 1px solid var(--linha); border-radius: var(--r-card); padding: 12px 13px 13px; background: var(--marfim); display: block; transition: border-color .12s ease, background .12s ease; }
 .kx .cat:hover { border-color: var(--linha-2); background: var(--branco); }
 .kx .cat h5 { font-family: var(--d); font-size: 13.5px; font-weight: 600; color: var(--preto); margin-bottom: 5px; }
-.kx .cat .cod { font-family: var(--m); font-size: 10px; color: var(--ocre); letter-spacing: .06em; display: flex; align-items: center; gap: 6px; }
+.kx .cat .cod { font-family: var(--m); font-size: 10px; color: var(--aviso); letter-spacing: .06em; display: flex; align-items: center; gap: 6px; }
 .kx .cat .cod svg { width: 15px; height: 15px; }
 .kx .cat .met { font-size: 11.5px; color: var(--ténue); margin-top: 6px; }
 .kx .pols { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
@@ -141,7 +141,7 @@
 /* ---------- duas portas ---------- */
 .kx .portas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 18px; }
 .kx .porta { background: var(--branco); border: 1px solid var(--linha); border-radius: var(--r-card); padding: 24px 22px 22px; box-shadow: var(--sombra); scroll-margin-top: 90px; }
-.kx .porta .rot { font-family: var(--m); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--ocre); margin-bottom: 8px; }
+.kx .porta .rot { font-family: var(--m); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--aviso); margin-bottom: 8px; }
 .kx .porta h3 { font-size: 22px; margin-bottom: 6px; }
 .kx .porta > p { color: var(--suave); font-size: 14px; margin-bottom: 15px; }
 .kx .porta ul { list-style: none; display: grid; gap: 9px; margin: 0 0 19px; padding: 0; }
@@ -157,7 +157,7 @@
 .kx .pil p { font-size: 13.5px; color: var(--suave); }
 .kx .emprest { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
 .kx .emp { background: var(--branco); border: 1px solid var(--linha); border-radius: var(--r-card); padding: 18px 18px 19px; box-shadow: var(--sombra); }
-.kx .emp .de { font-family: var(--m); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--ocre); margin-bottom: 8px; }
+.kx .emp .de { font-family: var(--m); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--aviso); margin-bottom: 8px; }
 .kx .emp h4 { font-size: 16px; margin-bottom: 6px; }
 .kx .emp p { font-size: 13px; color: var(--suave); }
 .kx .emp .para { font-size: 12.5px; color: var(--preto); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--linha); }
@@ -177,11 +177,12 @@
 .kx .fundo img, .kx .fundo video { display: block; width: 100%; height: auto; }
 .kx .fundo .foto { aspect-ratio: 16 / 10; object-fit: cover; }
 .kx .fundo .txt { padding: 15px 17px 17px; }
-.kx .fundo .rot { font-family: var(--m); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--ocre); margin-bottom: 7px; }
+.kx .fundo .rot { font-family: var(--m); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--aviso); margin-bottom: 7px; }
 .kx .fundo h4 { font-size: 16px; margin-bottom: 6px; }
 .kx .fundo p { font-size: 13px; color: var(--suave); }
 .kx .fundo .hex { font-family: var(--m); font-size: 10.5px; color: var(--ténue); margin-top: 10px; letter-spacing: .04em; }
 .kx .video-moldura { max-width: 960px; margin: 0 auto; }
+.kx .video-moldura .txt .rot { color: var(--aviso); }
 .kx .video-moldura video { aspect-ratio: 16 / 9; background: var(--shell); }
 
 /* ---------- fluxo (página de objecto) — jornada da demonstração e como funciona ---------- */
@@ -217,7 +218,7 @@
 .kx .bancada { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
 .kx .bc { background: var(--branco); border: 1px solid var(--linha); border-radius: var(--r-card); padding: 13px 14px 14px; box-shadow: var(--sombra); display: flex; flex-direction: column; }
 .kx .bc .cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
-.kx .bc .estrelas { color: var(--ocre); font-size: 14px; letter-spacing: .06em; }
+.kx .bc .estrelas { color: var(--aviso); font-size: 14px; letter-spacing: .06em; }
 .kx .bc .est { font-family: var(--m); font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border: 1px solid var(--ok-bd); color: var(--ok-fg); background: var(--ok-bg); border-radius: 3px; white-space: nowrap; }
 .kx .bc .msg { font-size: 13.5px; color: var(--texto); flex: 1; }
 .kx .bc footer { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--linha); }

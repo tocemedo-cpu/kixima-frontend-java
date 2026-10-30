@@ -15,7 +15,7 @@
 // Os números fictícios do HTML de referência (artigos e fornecedores por
 // categoria, estatísticas do sector) não entram: as categorias da compra
 // guiada são as reais do catálogo (as mesmas de src/components/icons.jsx),
-// sem contagens, e a pesquisa leva a quem tem sessão para o catálogo.
+// sem contagens, e a pesquisa leva ao catálogo público (/produtos).
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useI18n } from '../../i18n';
@@ -72,7 +72,7 @@ function FeedbackSection({ t }) {
   </section>;
 }
 
-// Os links de secção (menu e rodapé) navegam sempre para "/#secção", mesmo
+// Os links de secção (menu e rodapé) navegam sempre para "/sobre#secção", mesmo
 // vindos de outra página — este hook garante que, ao chegar (ou ao mudar de
 // hash na própria home), a página desce até à secção certa.
 function useScrollToHash() {
@@ -103,13 +103,11 @@ export default function CorporateHome() {
 
   const diasPagamento = stats?.pagamentoSlaDias ?? 7;
 
-  // A compra guiada abre a página pública com o mesmo gesto da plataforma. O
-  // catálogo é de quem tem sessão: a pesquisa leva ao login, e a expressão
-  // segue para lá sem ser perdida.
+  // A compra guiada leva ao catálogo público, com a expressão já pesquisada.
   function pesquisar(e) {
     e.preventDefault();
     const termo = q.trim();
-    navigate(`/login${termo ? `?q=${encodeURIComponent(termo)}` : ''}`);
+    navigate(`/produtos${termo ? `?q=${encodeURIComponent(termo)}` : ''}`);
   }
 
   return <main id="top" className="kx">
@@ -136,7 +134,7 @@ export default function CorporateHome() {
           <div className="cats">
             {CATEGORY_NAMES.map((nome) => {
               const vis = categoryVisual(nome);
-              return <Link className="cat" key={nome} to="/login"><h5>{nome}</h5><div className="cod"><Icon name={vis.icon} size={15} />{t('Catálogo UNSPSC')}</div></Link>;
+              return <Link className="cat" key={nome} to={`/categorias/${encodeURIComponent(nome)}`}><h5>{nome}</h5><div className="cod"><Icon name={vis.icon} size={15} />{t('Catálogo UNSPSC')}</div></Link>;
             })}
           </div>
           {/* Os indicadores da proposta de valor, como as políticas da compra guiada. */}
@@ -183,7 +181,7 @@ export default function CorporateHome() {
           <video controls preload="none" poster="/videos/kixima-login-checkout-poster.jpg" aria-label={t('Demonstração da plataforma KIXIMA, do login ao checkout')}><source src="/videos/kixima-login-checkout.mp4" type="video/mp4" /><track kind="captions" src="/videos/kixima-login-checkout.vtt" srcLang="pt" label={t('Português')} default /></video>
           <div className="txt">
             <div className="rot">{t('A jornada gravada')}</div>
-            <div className="fluxo">
+            <div className="fluxo" role="region" tabIndex={0} aria-label={t('Etapas (deslize para ver mais)')}>
               {[t('Login seguro'), t('Painel do comprador'), t('Catálogo e pesquisa'), t('Ficha de produto'), t('Carrinho e impostos'), t('Checkout por fornecedor')].map((passo, i) => (
                 <div className="f feito" key={passo}><div className="pt"></div><b>{passo}</b><i>{String(i + 1).padStart(2, '0')}</i></div>
               ))}
@@ -208,7 +206,7 @@ export default function CorporateHome() {
         <div className="sec-cab"><div className="eyebrow">{t('COMO FUNCIONA')}</div>
           <h2>{t('Da necessidade ao pagamento.')}</h2>
           <p>{t('Uma sequência simples para processos exigentes.')}</p></div>
-        <div className="fluxo">
+        <div className="fluxo" role="region" tabIndex={0} aria-label={t('Etapas (deslize para ver mais)')}>
           <div className="f"><div className="pt"></div><span className="n">01</span><b>{t('Credenciamento')}</b><i>{t('Dados e documentos são submetidos para verificação.')}</i></div>
           <div className="f"><div className="pt"></div><span className="n">02</span><b>{t('Mercado')}</b><i>{t('Compradores pesquisam; fornecedores apresentam ofertas.')}</i></div>
           <div className="f"><div className="pt"></div><span className="n">03</span><b>{t('Execução')}</b><i>{t('O pedido transforma-se em PO, entrega e recepção.')}</i></div>
