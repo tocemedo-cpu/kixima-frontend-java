@@ -44,6 +44,13 @@ export const ROLE_HOME = {
   ADMIN_SISTEMA: '/sistema',
 };
 
+// Cadastro empresarial: enquanto a empresa não está APROVADA (rascunho, em análise ou rejeitada) a conta só tem o seu
+// cadastro; o servidor recusa o resto (403 COMPANY_NOT_APPROVED). O Admin do Sistema não tem empresa.
+export const cadastroPendente = (user) => Boolean(user && user.companyStatus && user.companyStatus !== 'APROVADA');
+
+/** Para onde leva «o meu painel»: o cadastro, até a empresa estar aprovada; depois o painel do papel. */
+export const homeDe = (user) => (cadastroPendente(user) ? '/onboarding' : (ROLE_HOME[user?.role] || '/'));
+
 // Estado da PO -> { rótulo, tom do badge }
 export const PO_STATUS = {
   AGUARDANDO_APROVACAO: { label: 'Aguardando aprovação', tone: 'pending' },

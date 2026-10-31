@@ -1,0 +1,87 @@
+/* src/pages/shared/onboarding.css
+ * Registo em dois passos (Register, VerifyEmail) e cadastro por etapas (Onboarding). Só tokens de global.css/tema.css,
+ * por isso Claro, Escuro 1 e Escuro 2 funcionam sem uma linha extra. Prefixo `ob-` para não tocar em mais nada.
+ */
+
+.ob-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ob-lnk { color: var(--brand-600); font-weight: 600; }
+.ob-link { background: none; border: 0; padding: 0; color: var(--brand-600); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+/* ---------- registo / confirmação ---------- */
+.ob-reg { max-width: 440px; }
+.ob-reg-passo { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--brand-600); margin-bottom: 6px; }
+.ob-tipos { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; }
+.ob-tipo { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; row-gap: 2px; align-items: center; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-md); cursor: pointer; background: var(--branco); }
+.ob-tipo input { grid-row: 1 / span 2; margin: 0; width: 18px; height: 18px; }
+.ob-tipo-t { font-weight: 700; color: var(--ink-900); }
+.ob-tipo-d { font-size: var(--fs-md); color: var(--ink-600); }
+.ob-tipo.on { border-color: var(--brand-600); box-shadow: 0 0 0 1px var(--brand-600); }
+.ob-tipo:focus-within { outline: 2px solid var(--brand-600); outline-offset: 2px; }
+.ob-termos { display: flex; gap: 8px; align-items: flex-start; margin-top: 14px; font-size: 12.5px; cursor: pointer; }
+.ob-termos input { margin-top: 2px; }
+.ob-acoes { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 18px; }
+
+/* ---------- cadastro por etapas ---------- */
+.ob { min-height: 100vh; background: var(--paper-050); color: var(--ink-900); }
+.ob-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 24px; background: var(--navy-950); }
+.ob-topo-dir { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--sobre-cta, #fff); }
+.ob-conta { font-size: var(--fs-md); }
+.ob-main { max-width: 1040px; margin: 0 auto; padding: 28px 20px 56px; }
+.ob-estreito { max-width: 560px; }
+.ob-titulo { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.ob-titulo h1 { font-size: var(--fs-6xl); margin: 0; outline: none; }
+.ob-sup { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--brand-700, var(--brand-600)); margin: 0 0 2px; }
+
+.ob-progresso { height: 8px; border-radius: 999px; background: var(--paper-100); overflow: hidden; margin-top: 4px; }
+.ob-progresso-barra { height: 100%; background: var(--brand-600); transition: width .25s ease; }
+.ob-progresso-txt { font-size: var(--fs-md); color: var(--ink-600); margin: 6px 0 18px; }
+
+.ob-corpo { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 20px; align-items: start; }
+.ob-passos { min-width: 0; }
+.ob-passos ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ob-passo { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--branco); color: var(--ink-900); font: inherit; cursor: pointer; }
+.ob-passo-n { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line); font-size: var(--fs-sm); font-weight: 700; }
+.ob-passo.feito .ob-passo-n { background: var(--teal-100); color: var(--teal-600); border-color: transparent; }
+.ob-passo.on { border-color: var(--brand-600); box-shadow: 0 0 0 1px var(--brand-600); font-weight: 700; }
+.ob-passo:focus-visible { outline: 2px solid var(--brand-600); outline-offset: 2px; }
+
+.ob-card { background: var(--branco); border: 1px solid var(--line); border-top: 3px solid var(--brand-600); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 24px; min-width: 0; }
+.ob-card h1, .ob-card h2 { font-size: var(--fs-5xl, 20px); margin: 0 0 6px; outline: none; }
+.ob-ajuda { font-size: var(--fs-md); color: var(--ink-600); margin: 4px 0 12px; }
+.ob-rodape { justify-content: space-between; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 22px; }
+.ob-obrig { color: var(--brand-600); }
+
+.ob-doc { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); margin-bottom: 10px; }
+.ob-doc p { margin: 2px 0 0; }
+.ob-ok { color: var(--teal-600); font-size: var(--fs-md); overflow-wrap: anywhere; }
+.ob-logo { max-height: 48px; max-width: 120px; object-fit: contain; border-radius: 4px; }
+.ob-anexar { position: relative; cursor: pointer; }
+.ob-anexar input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.ob-anexar:focus-within { outline: 2px solid var(--brand-600); outline-offset: 2px; }
+.ob-anexar.ocupado { opacity: .6; cursor: progress; }
+
+.ob-resumo { margin: 8px 0 14px; display: grid; gap: 0; }
+.ob-linha { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: var(--fs-lg); }
+.ob-linha dt { color: var(--ink-600); }
+.ob-linha dd { margin: 0; overflow-wrap: anywhere; }
+.ob-vazio { color: var(--ink-400); font-style: italic; }
+.ob-docs { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.ob-docs .ok { color: var(--teal-600); }
+.ob-docs .falta { color: var(--terracotta-600); }
+.ob-pend { margin: 6px 0 0; padding-left: 18px; }
+
+@media (max-width: 860px) {
+  .ob-corpo { grid-template-columns: minmax(0, 1fr); }
+  .ob-passos ol { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 4px; }
+  .ob-passos li { flex: none; }
+  .ob-passo { white-space: nowrap; width: auto; }
+  .ob-linha { grid-template-columns: 1fr; gap: 2px; }
+  .ob-card { padding: 18px; }
+  .ob-rodape .btn { flex: 1 1 auto; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ob-progresso-barra { transition: none; }
+}
+.ob-ok a { color: inherit; text-decoration: underline; }
+.banner .ob-link { color: inherit; }

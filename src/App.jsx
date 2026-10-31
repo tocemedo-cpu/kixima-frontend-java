@@ -3,7 +3,7 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
 import { RequireAuth, RequireRole } from './auth/RequireAuth';
-import { ROLE_HOME } from './domain';
+import { homeDe } from './domain';
 import AppLayout from './components/AppLayout';
 import { CartProvider } from './pages/comprador/CartContext';
 import { RealtimeProvider } from './realtime/RealtimeContext';
@@ -27,6 +27,8 @@ const Carreiras = lazy(() => import('./pages/corporate/Carreiras'));
 const Faq = lazy(() => import('./pages/corporate/Faq'));
 const Recursos = lazy(() => import('./pages/corporate/Recursos'));
 const Register = lazy(() => import('./pages/shared/Register'));
+const VerifyEmail = lazy(() => import('./pages/shared/VerifyEmail'));
+const Onboarding = lazy(() => import('./pages/shared/Onboarding'));
 const AcceptInvite = lazy(() => import('./pages/shared/AcceptInvite'));
 const AcceptAdminInvite = lazy(() => import('./pages/shared/AcceptAdminInvite'));
 const PasswordReset = lazy(() => import('./pages/shared/PasswordReset'));
@@ -131,7 +133,7 @@ function PageLoading() {
 function Landing() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to={ROLE_HOME[user.role]} replace />;
+  if (user) return <Navigate to={homeDe(user)} replace />;
   return <MercadoHome />;
 }
 
@@ -164,6 +166,7 @@ export default function App() {
 
       <Route path="/login" element={<LoginPage />} />
       <Route path="/cadastro" element={<Register />} />
+      <Route path="/verificar-email/:token" element={<VerifyEmail />} />
       <Route path="/convite/:token" element={<AcceptInvite />} />
       <Route path="/convite-admin/:token" element={<AcceptAdminInvite />} />
       <Route path="/recuperar" element={<PasswordReset />} />
@@ -180,6 +183,8 @@ export default function App() {
       <Route path="/recursos" element={<Recursos />} />
 
       <Route element={<RequireAuth />}>
+        {/* Cadastro empresarial por etapas (conta já criada, empresa ainda por aprovar) */}
+        <Route path="/onboarding" element={<Onboarding />} />
         {/* Documentos imprimíveis (folha A4, sem a moldura da app) */}
         <Route path="/documento/po/:id" element={<PrintableDocument kind="po" />} />
         <Route path="/documento/fatura/:id" element={<PrintableDocument kind="invoice" />} />

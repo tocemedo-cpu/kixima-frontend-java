@@ -1,14 +1,19 @@
 // src/auth/RequireAuth.jsx
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { useI18n } from '../i18n';
-import { ROLE_HOME } from '../domain';
+import { cadastroPendente, homeDe } from '../domain';
 
 export function RequireAuth() {
   const { user, loading, sessaoIndeterminada, refreshUser } = useAuth();
   const { t } = useI18n();
+  const { pathname } = useLocation();
   if (loading) return <div className="loading-text">{t('A verificar sessão…')}</div>;
-  if (user) return <Outlet />;
+  if (user) {
+    // Empresa por aprovar: só o cadastro (e a segurança da conta). O servidor recusa o resto, aqui evita-se o beco sem saída.
+    if (cadastroPendente(user) && pathname !== '/onboarding' && pathname !== '/seguranca') return <Navigate to="/onboarding" replace />;
+    return <Outlet />;
+  }
 
   // NÃO CONSEGUIR PERGUNTAR NÃO É ESTAR DE FORA.
   //
@@ -40,6 +45,6 @@ export function RequireAuth() {
 export function RequireRole({ role }) {
   const { user } = useAuth();
   const permitidos = Array.isArray(role) ? role : [role];
-  if (!permitidos.includes(user.role)) return <Navigate to={ROLE_HOME[user.role]} replace />;
+  if (!permitidos.includes(user.role)) return <Navigate to={homeDe(user)} replace />;
   return <Outlet />;
 }

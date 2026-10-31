@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
-import { ROLE_HOME } from '../../domain';
+import { homeDe } from '../../domain';
 import { useI18n } from '../../i18n';
 import { SeletorDeFundo } from '../../tema/TemaContext';
 import { Brand, CorporateFooter, LanguageDropdown } from '../corporate/CorporateChrome';
@@ -82,7 +82,7 @@ function Cabecalho() {
           <div className="pm-conta">
             {cotacao ? <Link className="pm-acao-link" to={cotacao}>{t('Pedir cotação')}</Link> : null}
             {loading ? null : user
-              ? <Link className="btn pequeno" to={ROLE_HOME[user.role]}>{t('O meu painel')}</Link>
+              ? <Link className="btn pequeno" to={homeDe(user)}>{t('O meu painel')}</Link>
               : (<><Link className="pm-acao-link" to="/login">{t('Entrar')}</Link><Link className="btn pequeno" to="/cadastro">{t('Registar empresa')}</Link></>)}
           </div>
           <div className="pm-pref"><SeletorDeFundo compacto /><LanguageDropdown /></div>

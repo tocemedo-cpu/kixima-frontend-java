@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { Navigate, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { api } from '../../api/client';
-import { ROLE_HOME } from '../../domain';
+import { reenviarConfirmacao } from '../../api/onboarding';
+import { homeDe } from '../../domain';
 import AuthHero from '../../components/AuthHero';
 import { Icon } from '../../components/icons';
 import { useI18n, LANGS } from '../../i18n';
@@ -16,9 +17,9 @@ export default function LoginPage() {
   // A compra guiada da página corporativa manda a expressão pesquisada para
   // aqui (?q=…): um comprador que entra vai direito ao catálogo com ela.
   const [params] = useSearchParams();
-  const destino = (role) => {
+  const destino = (u) => {
     const q = (params.get('q') || '').trim();
-    return role === 'COMPRADOR' && q ? `/comprador/servicos?q=${encodeURIComponent(q)}` : ROLE_HOME[role];
+    return u.role === 'COMPRADOR' && q && !u.companyStatus ? `/comprador/servicos?q=${encodeURIComponent(q)}` : homeDe(u);
   };
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,12 +34,16 @@ export default function LoginPage() {
   const [metodo, setMetodo] = useState('');
   const [enviadoPara, setEnviadoPara] = useState('');
   const [aviso, setAviso] = useState('');
+  // Conta nova com o email por confirmar: a senha está certa, falta o link — oferece-se um novo.
+  const [porConfirmar, setPorConfirmar] = useState(false);
 
-  if (user) return <Navigate to={ROLE_HOME[user.role]} replace />;
+  if (user) return <Navigate to={homeDe(user)} replace />;
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setAviso('');
+    setPorConfirmar(false);
     setSubmitting(true);
     try {
       const result = await login(email, password);
@@ -48,11 +53,23 @@ export default function LoginPage() {
         setEnviadoPara(result.enviadoPara || '');
         return;
       }
-      navigate(destino(result.role), { replace: true });
+      navigate(destino(result), { replace: true });
     } catch (err) {
       setError(err.message || 'Não foi possível entrar.');
+      setPorConfirmar(err.code === 'EMAIL_NOT_VERIFIED');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function reenviarEmail() {
+    setError(''); setAviso('');
+    try {
+      await reenviarConfirmacao(email);
+      setAviso(t('Se existir uma conta por confirmar com este email, enviámos um novo link de confirmação.'));
+      setPorConfirmar(false);
+    } catch (err) {
+      setError(err.message);
     }
   }
 
@@ -62,7 +79,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const loggedUser = await verify2fa(challenge, code.trim());
-      navigate(destino(loggedUser.role), { replace: true });
+      navigate(destino(loggedUser), { replace: true });
     } catch (err) {
       setError(err.message || 'Código incorreto.');
       // Desafio expirado → recomeça do início.
@@ -151,7 +168,13 @@ export default function LoginPage() {
               <label htmlFor="password">{t('Palavra-passe')}</label>
               <input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
             </div>
-            {error ? <p className="error-text" style={{ marginBottom: 12 }}>{error}</p> : null}
+            {error ? <p className="error-text" role="alert" style={{ marginBottom: 12 }}>{error}</p> : null}
+            {porConfirmar ? (
+              <p style={{ marginBottom: 12 }}>
+                <button type="button" className="btn btn-ghost pequeno" onClick={reenviarEmail}>{t('Reenviar email de confirmação')}</button>
+              </p>
+            ) : null}
+            {aviso ? <p className="helptext" role="status" style={{ marginBottom: 12 }}>{aviso}</p> : null}
             <button className="btn btn-accent btn-lg" type="submit" disabled={submitting} style={{ width: '100%' }}>
               {submitting ? t('A entrar…') : t('Entrar')}
             </button>

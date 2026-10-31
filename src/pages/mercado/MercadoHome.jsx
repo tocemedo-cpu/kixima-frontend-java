@@ -8,7 +8,7 @@ import { fornecedoras as lerFornecedoras, pesquisar } from '../../api/publicCata
 import { api } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { Icon, categoryVisual } from '../../components/icons';
-import { formatNumber, ROLE_HOME } from '../../domain';
+import { formatNumber, homeDe } from '../../domain';
 import { useI18n } from '../../i18n';
 import imagemEnergia from '../../assets/corporate/kixima-energy-mining.webp';
 import { CartaoProduto, EstadoErro, Esqueletos, useTitulo } from './componentes';
@@ -95,7 +95,7 @@ export default function MercadoHome() {
           <p>{t('Diga o que precisa e receba propostas com preço e prazo de várias fornecedoras.')}</p>
           <ol><li>{t('Descreva o que precisa')}</li><li>{t('Compare as propostas')}</li><li>{t('Emita a ordem de compra')}</li></ol>
           {cotacao ? <Link className="btn" to={cotacao}>{user ? t('Pedir cotação') : t('Entrar para pedir cotação')}</Link>
-            : <Link className="btn" to={ROLE_HOME[user.role]}>{t('O meu painel')}</Link>}
+            : <Link className="btn" to={homeDe(user)}>{t('O meu painel')}</Link>}
           {!user ? <Link className="btn alt" to="/cadastro">{t('Registar a minha empresa')}</Link> : null}
           {!user ? <p className="pm-nota">{t('Para enviar um pedido precisa de uma conta empresarial.')}</p> : null}
         </aside>
