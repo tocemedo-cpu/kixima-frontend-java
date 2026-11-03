@@ -8,7 +8,7 @@ personas descritas em `kixima-telas-mvp.md`.
 - **React 18** + **React Router 6** (sem Redux — estado de servidor vai
   direto para `useState`/`useEffect`; a única exceção é a cesta do
   Comprador, guardada em `CartContext`).
-- **Vite** com proxy de `/api` para `http://localhost:4000` em desenvolvimento.
+- **Vite** com proxy de `/api` para `http://localhost:4001` em desenvolvimento (`API_PROXY_TARGET` altera o destino).
 - CSS simples com tokens em `src/styles/global.css` — sem framework de UI.
 
 ## Identidade visual
@@ -67,6 +67,13 @@ Para apontar o proxy a outro anfitrião ou porta, sem mexer no código:
 ```bash
 API_PROXY_TARGET=http://192.168.1.20:4001 npm run dev
 ```
+
+ou num `.env.local` (copie `.env.example`; a variável da shell tem prioridade).
+
+**Todos os pedidos à API dão 500?** Se o destino do proxy não responder (backend parado, porta diferente), o Vite
+devolve 500 com corpo vazio e o terminal mostra `[vite] http proxy error: /api/...`. Confirme com
+`curl -i http://localhost:4001/ready`. Um 500 do próprio backend traz um JSON `{"error":{"code":...}}`; a interface
+mostra a mensagem da API nesse caso, e «Não foi possível contactar o servidor da KIXIMA» quando quem respondeu não foi a API.
 
 ## Estrutura
 

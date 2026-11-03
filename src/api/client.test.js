@@ -149,3 +149,64 @@ describe('Robustez contra respostas vazias/não-JSON', () => {
       .rejects.toMatchObject({ status: 401, code: 'UNAUTHORIZED' });
   });
 });
+
+// Quando quem responde NÃO é a API (servidor parado, proxy do Vite sem destino, gateway), a mensagem diz a causa real em
+// vez de «Erro 500». Um erro que a API devolve, com o seu envelope JSON, nunca é substituído.
+describe('Falhas em que a API não respondeu', () => {
+  const SEM_SERVIDOR = 'Não foi possível contactar o servidor da KIXIMA. Verifique a ligação ou tente mais tarde.';
+  const respostaErro = (status, { contentType = 'text/plain', json = null } = {}) => vi.fn().mockResolvedValue({
+    ok: false, status, headers: new Headers(contentType ? { 'content-type': contentType } : {}), json: async () => json,
+  });
+
+  test('500 com corpo vazio e text/plain (proxy do Vite sem destino) → mensagem honesta, não «Erro 500»', async () => {
+    const { api } = await carregarClienteComo({ nativo: false });
+    vi.stubGlobal('fetch', respostaErro(500));
+    await expect(api.get('/api/public/stats')).rejects.toMatchObject({ message: SEM_SERVIDOR, status: 500, code: 'SERVIDOR_INDISPONIVEL' });
+  });
+
+  test('502/503/504 sem JSON da API também', async () => {
+    const { api } = await carregarClienteComo({ nativo: false });
+    for (const estado of [502, 503, 504]) {
+      vi.stubGlobal('fetch', respostaErro(estado, { contentType: 'text/html' }));
+      // eslint-disable-next-line no-await-in-loop
+      await expect(api.post('/api/auth/register', { email: 'a@b.co' })).rejects.toMatchObject({ message: SEM_SERVIDOR, status: estado });
+    }
+  });
+
+  test('o 500 do próprio backend (envelope JSON) mantém a mensagem e o código da API', async () => {
+    const { api } = await carregarClienteComo({ nativo: false });
+    vi.stubGlobal('fetch', respostaErro(500, {
+      contentType: 'application/json', json: { error: { code: 'INTERNAL_ERROR', message: 'Ocorreu um erro interno. Tente novamente mais tarde.' } },
+    }));
+    await expect(api.get('/api/public/stats')).rejects.toMatchObject({ code: 'INTERNAL_ERROR', status: 500, message: 'Ocorreu um erro interno. Tente novamente mais tarde.' });
+  });
+
+  test('o 503 do backend (base indisponível) também mantém a mensagem da API', async () => {
+    const { api } = await carregarClienteComo({ nativo: false });
+    vi.stubGlobal('fetch', respostaErro(503, {
+      contentType: 'application/json', json: { error: { code: 'SERVICO_INDISPONIVEL', message: 'A base de dados está temporariamente indisponível. Tente novamente dentro de instantes.' } },
+    }));
+    await expect(api.get('/api/public/stats')).rejects.toMatchObject({ code: 'SERVICO_INDISPONIVEL', message: expect.stringContaining('base de dados') });
+  });
+
+  test('erros 4xx sem corpo continuam a dizer o estado (só os 5xx foram reclassificados)', async () => {
+    const { api } = await carregarClienteComo({ nativo: false });
+    vi.stubGlobal('fetch', respostaErro(404));
+    await expect(api.get('/api/nao-existe')).rejects.toMatchObject({ status: 404, message: expect.stringContaining('404') });
+  });
+
+  test('falha de rede (fetch rejeita com TypeError) → mensagem honesta, status 0', async () => {
+    const { api } = await carregarClienteComo({ nativo: false });
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    await expect(api.get('/api/public/catalog/facets')).rejects.toMatchObject({ message: SEM_SERVIDOR, status: 0, code: 'SEM_LIGACAO' });
+  });
+
+  test('o mesmo vale nos envios com ficheiro e formulário', async () => {
+    const { api } = await carregarClienteComo({ nativo: false });
+    vi.stubGlobal('fetch', respostaErro(500));
+    await expect(api.upload('/api/x', new Blob(['a']))).rejects.toMatchObject({ message: SEM_SERVIDOR });
+    await expect(api.postForm('/api/x', new FormData())).rejects.toMatchObject({ message: SEM_SERVIDOR });
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    await expect(api.postForm('/api/x', new FormData())).rejects.toMatchObject({ message: SEM_SERVIDOR, status: 0 });
+  });
+});

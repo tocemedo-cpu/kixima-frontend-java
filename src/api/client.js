@@ -20,7 +20,7 @@ import { translate } from '../i18n';
 // a proteção desaparece com eles.
 
 // `credentials: 'include'` em TODOS os pedidos: sem isto o browser não envia o
-// cookie para outra origem, e em desenvolvimento (Vite na 5173, API na 4000) o
+// cookie para outra origem, e em desenvolvimento (Vite na 5173, API na 4001) o
 // login funcionava e o pedido seguinte vinha sem sessão.
 const COM_SESSAO = { credentials: 'include' };
 
@@ -121,6 +121,31 @@ export function marcarSessao(ativa) {
   else localStorage.removeItem(MARCA_DE_SESSAO);
 }
 
+// Mensagem quando NÃO foi a API a responder: servidor parado, porta/URL errada, proxy sem destino (o Vite devolve 500 com corpo
+// vazio e `text/plain`), gateway em baixo. Diz a causa real em vez de «Erro 500»; os erros que a API devolve, com o seu
+// envelope JSON, continuam a mostrar a mensagem da própria API.
+const SEM_SERVIDOR = 'Não foi possível contactar o servidor da KIXIMA. Verifique a ligação ou tente mais tarde.';
+
+function erroSemServidor(status) {
+  const err = new Error(translate(SEM_SERVIDOR));
+  err.status = status;
+  err.code = status === 0 ? 'SEM_LIGACAO' : 'SERVIDOR_INDISPONIVEL';
+  return err;
+}
+
+/** fetch que transforma uma falha de rede (TypeError: «Failed to fetch», ligação recusada, DNS) no erro acima. */
+async function buscar(url, init) {
+  try {
+    return await fetch(url, init);
+  } catch (e) {
+    if (e instanceof TypeError) throw erroSemServidor(0);
+    throw e;
+  }
+}
+
+/** 5xx sem a mensagem da API (corpo vazio ou não-JSON): quem respondeu foi um proxy/gateway, não o backend. */
+const veioDeFora = (res, data) => res.status >= 500 && !data?.error?.message;
+
 async function request(path, { method = 'GET', body, params } = {}) {
   const url = new URL(path, apiBaseUrl() || window.location.origin);
   if (params) {
@@ -132,7 +157,7 @@ async function request(path, { method = 'GET', body, params } = {}) {
   // A URL completa (não só pathname+search): contra a própria origem isto
   // resolve-se em tudo igual a um caminho relativo, e é o que torna a base
   // absoluta acima (apiBaseUrl()) capaz de sair da origem falsa do Capacitor.
-  const res = await fetch(url.toString(), {
+  const res = await buscar(url.toString(), {
     method,
     headers: headersComSessao({ 'Content-Type': 'application/json' }),
     body: body ? JSON.stringify(body) : undefined,
@@ -143,6 +168,7 @@ async function request(path, { method = 'GET', body, params } = {}) {
   const data = isJson ? await res.json().catch(() => null) : null;
 
   if (!res.ok) {
+    if (veioDeFora(res, data)) throw erroSemServidor(res.status);
     const message = data?.error?.message
       ? translate(data.error.message)
       : translate('Erro {status} ao contactar a API.', { status: res.status });
@@ -175,11 +201,12 @@ async function uploadFile(path, file, field = 'image') {
   const formData = new FormData();
   formData.append(field, file);
   const url = new URL(path, apiBaseUrl() || window.location.origin);
-  const res = await fetch(url.toString(), { method: 'POST', body: formData, headers: headersComSessao(), ...COM_SESSAO });
+  const res = await buscar(url.toString(), { method: 'POST', body: formData, headers: headersComSessao(), ...COM_SESSAO });
   const data = res.headers.get('content-type')?.includes('application/json')
     ? await res.json().catch(() => null)
     : null;
   if (!res.ok) {
+    if (veioDeFora(res, data)) throw erroSemServidor(res.status);
     const err = new Error(data?.error?.message
       ? translate(data.error.message)
       : translate('Erro {status} ao enviar o ficheiro.', { status: res.status }));
@@ -199,11 +226,12 @@ async function uploadFile(path, file, field = 'image') {
 // POST de um FormData já montado (multipart) — ex.: cadastro com documentos.
 async function postForm(path, formData) {
   const url = new URL(path, apiBaseUrl() || window.location.origin);
-  const res = await fetch(url.toString(), { method: 'POST', body: formData, headers: headersComSessao(), ...COM_SESSAO });
+  const res = await buscar(url.toString(), { method: 'POST', body: formData, headers: headersComSessao(), ...COM_SESSAO });
   const data = res.headers.get('content-type')?.includes('application/json')
     ? await res.json().catch(() => null)
     : null;
   if (!res.ok) {
+    if (veioDeFora(res, data)) throw erroSemServidor(res.status);
     const err = new Error(data?.error?.message
       ? translate(data.error.message)
       : translate('Erro {status} ao enviar o formulário.', { status: res.status }));
