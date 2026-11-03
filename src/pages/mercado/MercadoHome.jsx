@@ -1,17 +1,19 @@
 // src/pages/mercado/MercadoHome.jsx
-// Homepage do marketplace (rota «/» para quem não tem sessão). Tudo o que é catálogo vem da API pública: categorias com
-// contagens, produtos mais vistos, adicionados recentemente, serviços e fornecedoras verificadas. Uma secção sem dados
-// reais NÃO aparece (sem enchimento); se a API estiver em baixo, aparece o aviso honesto em vez de produtos inventados.
+// Homepage do marketplace (rota «/» para quem não tem sessão). O catálogo é o protagonista: uma faixa de abertura
+// compacta (categorias · apresentação · pedido de cotação) e logo a seguir categorias, produtos populares, serviços e
+// fornecedoras verificadas. Tudo vem da API pública. Uma secção sem dados reais NÃO aparece (sem enchimento), cada
+// pedido tem o seu estado de carregamento, e se a API estiver em baixo aparece o aviso honesto em vez de produtos
+// inventados. A coluna de categorias só existe quando há categorias (ou enquanto carregam): nunca fica vazia.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fornecedoras as lerFornecedoras, pesquisar } from '../../api/publicCatalog';
 import { api } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
-import { Icon, categoryVisual } from '../../components/icons';
+import { Icon, Stars, categoryVisual } from '../../components/icons';
 import { formatNumber, homeDe } from '../../domain';
 import { useI18n } from '../../i18n';
 import imagemEnergia from '../../assets/corporate/kixima-energy-mining.webp';
-import { CartaoProduto, EstadoErro, Esqueletos, useTitulo } from './componentes';
+import { CartaoProduto, EstadoErro, EstadoVazio, Esqueletos, useTitulo } from './componentes';
 import { useMercado } from './MercadoContexto';
 import { destinoCotacao, urlCategoria, urlFornecedora } from './mercadoDados';
 
@@ -23,6 +25,29 @@ function Seccao({ titulo, ligacao, rotuloLigacao, children, id }) {
       <div className="pm-sec-cab"><h2 id={id}>{titulo}</h2>{ligacao ? <Link to={ligacao}>{rotuloLigacao} →</Link> : null}</div>
       {children}
     </section>
+  );
+}
+
+/** Coluna de categorias do topo: carrega com esqueletos e só mostra as categorias que a API devolveu. */
+function TrilhoCategorias({ categorias, carregando }) {
+  const { t } = useI18n();
+  return (
+    <nav className="pm-trilho" aria-label={t('Categorias')} aria-busy={carregando}>
+      <h2>{t('Categorias')}</h2>
+      {carregando
+        ? Array.from({ length: 8 }, (_, i) => <span key={i} className="pm-trilho-esq" aria-hidden="true" />)
+        : categorias.slice(0, 7).map((c) => {
+          const v = categoryVisual(c.name);
+          return (
+            <Link key={c.name} to={urlCategoria(c.name)}>
+              <span className="pm-trilho-ic" style={{ '--cat-de': v.from, '--cat-para': v.to }}><Icon name={v.icon} size={14} /></span>
+              <span className="pm-trilho-nome">{c.name}</span>
+              <small>{c.count}</small>
+            </Link>
+          );
+        })}
+      <Link className="pm-ver-todas" to="/produtos">{t('Ver todo o catálogo')} →</Link>
+    </nav>
   );
 }
 
@@ -44,16 +69,18 @@ export default function MercadoHome() {
   const { user } = useAuth();
   const { estado, globais, recarregar } = useMercado();
   const [stats, setStats] = useState(null);
-  const [forn, setForn] = useState([]);
+  const [forn, setForn] = useState({ carregando: true, items: [] });
   useTitulo(t('Marketplace B2B industrial'));
 
   const produtos = usePesquisa({ kind: 'PRODUTO', sort: 'solicitados', limit: 10 });
-  const servicos = usePesquisa({ kind: 'SERVICO', sort: 'avaliacao', limit: 5 });
+  const servicos = usePesquisa({ kind: 'SERVICO', sort: 'avaliacao', limit: 6 });
   const recentes = usePesquisa({ sort: 'recentes', limit: 14 });
 
   useEffect(() => {
     api.get('/api/public/stats').then(setStats).catch(() => {});
-    lerFornecedoras(4).then(setForn).catch(() => {});
+    lerFornecedoras(8)
+      .then((items) => setForn({ carregando: false, items }))
+      .catch(() => setForn({ carregando: false, items: [] }));
   }, []);
 
   // Um item aparece numa só prateleira.
@@ -62,7 +89,13 @@ export default function MercadoHome() {
 
   const categorias = globais?.categories || [];
   const cotacao = destinoCotacao(user);
+  const carregandoCategorias = estado === 'carregando';
+  // A coluna de categorias só existe se há o que mostrar (ou enquanto carrega): nunca fica vazia nem deixa um buraco.
+  const temTrilho = carregandoCategorias || categorias.length > 0;
   const semCatalogo = estado === 'indisponivel' || (produtos.erro && servicos.erro && recentes.erro);
+  const tudoCarregado = !carregandoCategorias && !produtos.carregando && !servicos.carregando && !recentes.carregando && !forn.carregando;
+  const catalogoVazio = tudoCarregado && !semCatalogo && !categorias.length && !produtos.items.length
+    && !servicos.items.length && !novos.length && !forn.items.length;
   const numeros = stats ? [
     [stats.empresasVerificadas, t('empresas compradoras verificadas')],
     [stats.fornecedoresQualificados, t('fornecedoras qualificadas')],
@@ -71,13 +104,8 @@ export default function MercadoHome() {
 
   return (
     <>
-      <div className="pm-in pm-heroi">
-        <nav className="pm-trilho" aria-label={t('Categorias')}>
-          <h2>{t('Categorias')}</h2>
-          {categorias.slice(0, 9).map((c) => <Link key={c.name} to={urlCategoria(c.name)}>{c.name} <small>{c.count}</small></Link>)}
-          {estado === 'carregando' ? <p className="pm-nota" style={{ padding: '8px 10px' }}>{t('A carregar…')}</p> : null}
-          <Link className="pm-ver-todas" to="/produtos">{t('Ver todo o catálogo')} →</Link>
-        </nav>
+      <div className={`pm-in pm-heroi${temTrilho ? '' : ' pm-heroi-sem-trilho'}`}>
+        {temTrilho ? <TrilhoCategorias categorias={categorias} carregando={carregandoCategorias} /> : null}
 
         <div className="pm-banner" style={{ '--pm-banner-img': `url(${imagemEnergia})` }}>
           <p className="pm-eyebrow">{t('E-MARKETPLACE B2B · SOURCE-TO-PAY')}</p>
@@ -101,8 +129,28 @@ export default function MercadoHome() {
         </aside>
       </div>
 
+      {numeros.length ? (
+        <ul className="pm-in pm-numeros" aria-label={t('A KIXIMA em números')}>
+          {numeros.map(([n, rotulo]) => <li key={rotulo}><strong>{formatNumber(n)}</strong><span>{rotulo}</span></li>)}
+        </ul>
+      ) : null}
+
       {semCatalogo ? <div className="pm-in pm-sec"><EstadoErro onRetry={recarregar} /></div> : null}
 
+      {catalogoVazio ? (
+        <div className="pm-in pm-sec">
+          <EstadoVazio titulo={t('O catálogo ainda não tem itens publicados.')}
+            texto={t('Assim que as fornecedoras verificadas publicarem produtos e serviços, aparecem aqui. Se é fornecedora, registe a sua empresa.')}>
+            {!user ? <Link className="btn pequeno" to="/cadastro">{t('Registar a minha empresa')}</Link> : null}
+          </EstadoVazio>
+        </div>
+      ) : null}
+
+      {carregandoCategorias ? (
+        <div className="pm-sec pm-in"><div className="pm-categorias" role="status" aria-label={t('A carregar…')}>
+          {Array.from({ length: 6 }, (_, i) => <div key={i} className="pm-categoria pm-categoria-esq" aria-hidden="true" />)}
+        </div></div>
+      ) : null}
       {categorias.length ? (
         <Seccao id="pm-cat" titulo={t('Categorias industriais')} ligacao="/produtos" rotuloLigacao={t('Ver todas')}>
           <div className="pm-categorias">
@@ -110,7 +158,7 @@ export default function MercadoHome() {
               const v = categoryVisual(c.name);
               return (
                 <Link key={c.name} className="pm-categoria" to={urlCategoria(c.name)} style={{ '--cat-de': v.from, '--cat-para': v.to }}>
-                  <span className="pm-categoria-ic"><Icon name={v.icon} size={24} /></span>
+                  <span className="pm-categoria-ic"><Icon name={v.icon} size={22} /></span>
                   <span><strong>{c.name}</strong><span>{t('{n} itens', { n: formatNumber(c.count) })}</span></span>
                 </Link>
               );
@@ -121,34 +169,39 @@ export default function MercadoHome() {
 
       {produtos.carregando ? <div className="pm-sec pm-in"><Esqueletos n={5} /></div> : null}
       {produtos.items.length ? (
-        <Seccao id="pm-mais-vistos" titulo={t('Produtos mais vistos')} ligacao="/produtos?kind=PRODUTO&sort=solicitados" rotuloLigacao={t('Ver todos')}>
+        <Seccao id="pm-populares" titulo={t('Produtos populares')} ligacao="/produtos?kind=PRODUTO&sort=solicitados" rotuloLigacao={t('Ver todos')}>
           <div className="pm-prateleira">{produtos.items.map((p) => <CartaoProduto key={p.id} p={p} />)}</div>
-        </Seccao>
-      ) : null}
-
-      {novos.length ? (
-        <Seccao id="pm-recentes" titulo={t('Adicionados recentemente')} ligacao="/produtos?sort=recentes" rotuloLigacao={t('Ver todos')}>
-          <div className="pm-prateleira">{novos.map((p) => <CartaoProduto key={p.id} p={p} />)}</div>
-        </Seccao>
-      ) : null}
-
-      {forn.length ? (
-        <Seccao id="pm-forn" titulo={t('Fornecedoras e prestadoras de serviços verificadas')} ligacao="/fornecedoras" rotuloLigacao={t('Ver todas')}>
-          <div className="pm-fornecedoras">
-            {forn.map((f) => (
-              <article className="pm-fornecedora" key={f.id}>
-                <h3><span className="pm-logo" aria-hidden="true">{f.name.trim().charAt(0).toUpperCase()}</span><Link to={urlFornecedora(f.id)}>{f.name}</Link></h3>
-                <p><span className="pm-verif">✔ {t('Verificada')}</span>{[f.city, f.country].filter(Boolean).length ? ` · ${[f.city, f.country].filter(Boolean).join(', ')}` : ''}</p>
-                <p>{t('{n} produtos e serviços ativos', { n: formatNumber(f.productCount || 0) })}</p>
-              </article>
-            ))}
-          </div>
         </Seccao>
       ) : null}
 
       {servicos.items.length ? (
         <Seccao id="pm-servicos" titulo={t('Serviços técnicos')} ligacao="/produtos?kind=SERVICO" rotuloLigacao={t('Ver todos')}>
           <div className="pm-prateleira">{servicos.items.map((p) => <CartaoProduto key={p.id} p={p} />)}</div>
+        </Seccao>
+      ) : null}
+
+      {forn.items.length ? (
+        <Seccao id="pm-forn" titulo={t('Fornecedoras e prestadoras de serviços verificadas')} ligacao="/fornecedoras" rotuloLigacao={t('Ver todas')}>
+          <div className="pm-fornecedoras">
+            {forn.items.map((f) => {
+              const local = [f.city, f.country].filter(Boolean).join(', ');
+              const nota = Number(f.rating);
+              return (
+                <article className="pm-fornecedora" key={f.id}>
+                  <h3><span className="pm-logo" aria-hidden="true">{f.name.trim().charAt(0).toUpperCase()}</span><Link to={urlFornecedora(f.id)}>{f.name}</Link></h3>
+                  <p><span className="pm-verif">✔ {t('Verificada')}</span>{local ? ` · ${local}` : ''}</p>
+                  <p>{t('{n} produtos e serviços ativos', { n: formatNumber(f.productCount || 0) })}</p>
+                  {nota > 0 ? <p className="pm-aval"><Stars value={nota} size={12} /> <b>{nota.toFixed(1).replace('.', ',')}</b></p> : null}
+                </article>
+              );
+            })}
+          </div>
+        </Seccao>
+      ) : null}
+
+      {novos.length ? (
+        <Seccao id="pm-recentes" titulo={t('Adicionados recentemente')} ligacao="/produtos?sort=recentes" rotuloLigacao={t('Ver todos')}>
+          <div className="pm-prateleira">{novos.map((p) => <CartaoProduto key={p.id} p={p} />)}</div>
         </Seccao>
       ) : null}
 
@@ -167,7 +220,6 @@ export default function MercadoHome() {
           <div><strong>{t('Fornecedoras verificadas')}</strong><p>{t('A due diligence é feita uma vez; o selo ✔ só existe para fornecedoras aprovadas.')}</p></div>
           <div><strong>{t('Aprovação e controlo')}</strong><p>{t('Cada ordem de compra passa pela aprovação do administrador da sua empresa.')}</p></div>
           <div><strong>{t('Pagamento rastreável')}</strong><p>{stats?.pagamentoSlaDias ? t('Faturação com pagamento e comprovativo registados; prazo de pagamento de {n} dias.', { n: stats.pagamentoSlaDias }) : t('Faturação com pagamento e comprovativo registados.')}</p></div>
-          {numeros.map(([n, rotulo]) => <div key={rotulo}><span className="pm-num">{formatNumber(n)}</span><p>{rotulo}</p></div>)}
           <div><strong>{t('Conheça a KIXIMA')}</strong><p><Link to="/sobre">{t('Sobre a KIXIMA')}</Link> · <Link to="/sobre#avaliacoes">{t('Avaliações verificadas')}</Link> · <Link to="/faq">{t('Perguntas frequentes')}</Link></p></div>
         </div>
       </Seccao>

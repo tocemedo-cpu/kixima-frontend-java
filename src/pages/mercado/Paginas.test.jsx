@@ -50,7 +50,7 @@ describe('Homepage', () => {
   test('mostra categorias e prateleiras reais; um item aparece numa só prateleira (sem «recentes» repetidos)', async () => {
     api();
     rota('/', '/', <MercadoHome />);
-    expect(await screen.findByRole('heading', { name: 'Produtos mais vistos' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Produtos populares' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Serviços técnicos' })).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { name: 'Válvula 4"' })).toHaveLength(1);
     expect(screen.queryByRole('heading', { name: 'Adicionados recentemente' })).not.toBeInTheDocument();
@@ -60,13 +60,74 @@ describe('Homepage', () => {
     rota('/', '/', <MercadoHome />);
     expect(await screen.findByText('empresas compradoras verificadas')).toBeInTheDocument();
     expect(screen.queryByText('ordens de compra processadas')).not.toBeInTheDocument();
+    const faixa = screen.getByRole('list', { name: 'A KIXIMA em números' });
+    expect(within(faixa).getAllByRole('listitem')).toHaveLength(2); // empresas e fornecedoras; as ordens (0) ficam de fora
+  });
+  test('sem estatísticas da API não há faixa de números (nada inventado)', async () => {
+    api();
+    const original = apiGet.getMockImplementation();
+    apiGet.mockImplementation((url, params) => (url === '/api/public/stats' ? Promise.reject(new Error('rede')) : original(url, params)));
+    rota('/', '/', <MercadoHome />);
+    await screen.findByRole('heading', { name: 'Produtos populares' });
+    expect(screen.queryByRole('list', { name: 'A KIXIMA em números' })).not.toBeInTheDocument();
+  });
+  test('coluna de categorias: links reais com contagem; o catálogo vem logo a seguir à abertura', async () => {
+    api();
+    rota('/', '/', <MercadoHome />);
+    const coluna = await screen.findByRole('navigation', { name: 'Categorias' });
+    expect(within(coluna).getByRole('link', { name: /Válvulas/ })).toHaveAttribute('href', '/categorias/V%C3%A1lvulas');
+    expect(within(coluna).getByRole('link', { name: /Ver todo o catálogo/ })).toHaveAttribute('href', '/produtos');
+    // Ordem comercial: categorias → produtos populares → serviços → fornecedoras verificadas.
+    const titulos = (await screen.findAllByRole('heading', { level: 2 })).map((h) => h.textContent);
+    const ordem = ['Categorias industriais', 'Produtos populares', 'Serviços técnicos', 'Fornecedoras e prestadoras de serviços verificadas'];
+    expect(ordem.map((t) => titulos.indexOf(t))).toEqual([...ordem.map((t) => titulos.indexOf(t))].sort((a, b) => a - b));
+    expect(ordem.every((t) => titulos.includes(t))).toBe(true);
+  });
+  test('enquanto as facetas carregam, a coluna mostra esqueletos (aria-busy) e não fica vazia', async () => {
+    let resolver;
+    apiGet.mockImplementation((url) => {
+      if (url.endsWith('/facets')) return new Promise((ok) => { resolver = () => ok(FACETAS); });
+      if (url.endsWith('/search')) return Promise.resolve({ items: [], total: 0, page: 1, pages: 1, limit: 48 });
+      if (url.endsWith('/suppliers')) return Promise.resolve([]);
+      return Promise.resolve({});
+    });
+    rota('/', '/', <MercadoHome />);
+    const coluna = await screen.findByRole('navigation', { name: 'Categorias' });
+    expect(coluna).toHaveAttribute('aria-busy', 'true');
+    expect(coluna.querySelectorAll('.pm-trilho-esq').length).toBeGreaterThan(0);
+    resolver();
+    await waitFor(() => expect(screen.getByRole('navigation', { name: 'Categorias' })).toHaveAttribute('aria-busy', 'false'));
+    expect(within(screen.getByRole('navigation', { name: 'Categorias' })).getByRole('link', { name: /Válvulas/ })).toBeInTheDocument();
+  });
+  test('sem categorias a coluna desaparece (sem coluna vazia) e o catálogo vazio diz-se', async () => {
+    apiGet.mockImplementation((url) => {
+      if (url.endsWith('/facets')) return Promise.resolve({ categories: [], kinds: [], countries: [], certifications: [], priceBounds: null });
+      if (url.endsWith('/search')) return Promise.resolve({ items: [], total: 0, page: 1, pages: 1, limit: 48 });
+      if (url.endsWith('/suppliers')) return Promise.resolve([]);
+      return Promise.resolve({ empresasVerificadas: 0, fornecedoresQualificados: 0, ordensProcessadas: 0 });
+    });
+    const { container } = rota('/', '/', <MercadoHome />);
+    expect(await screen.findByText('O catálogo ainda não tem itens publicados.')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Categorias' })).not.toBeInTheDocument();
+    expect(container.querySelector('.pm-heroi')).toHaveClass('pm-heroi-sem-trilho');
+    const vazio = screen.getByText('O catálogo ainda não tem itens publicados.').closest('[role="status"]');
+    expect(within(vazio).getByRole('link', { name: 'Registar a minha empresa' })).toHaveAttribute('href', '/cadastro');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument(); // vazio não é erro
+  });
+  test('fornecedoras verificadas mostram localização, itens ativos e a avaliação real', async () => {
+    api();
+    rota('/', '/', <MercadoHome />);
+    const seccao = (await screen.findByRole('heading', { name: 'Fornecedoras e prestadoras de serviços verificadas' })).closest('section');
+    expect(within(seccao).getByRole('link', { name: F.name })).toHaveAttribute('href', '/fornecedoras/F1');
+    expect(within(seccao).getByText(/Luanda, Angola/)).toBeInTheDocument();
+    expect(within(seccao).getByText('4,6')).toBeInTheDocument();
   });
   test('sem produtos publicados: as prateleiras desaparecem (sem enchimento)', async () => {
     api({ itens: [] });
     rota('/', '/', <MercadoHome />);
     await waitFor(() => expect(apiGet).toHaveBeenCalled());
     await screen.findByText('Peça cotações');
-    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Produtos mais vistos' })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Produtos populares' })).not.toBeInTheDocument());
     expect(screen.queryByRole('heading', { name: 'Serviços técnicos' })).not.toBeInTheDocument();
   });
   test('API em baixo: aviso honesto e nenhum produto', async () => {
@@ -74,6 +135,8 @@ describe('Homepage', () => {
     rota('/', '/', <MercadoHome />);
     expect(await screen.findByText('O catálogo está indisponível neste momento.')).toBeInTheDocument();
     expect(screen.queryAllByRole('article')).toHaveLength(0);
+    expect(screen.queryByRole('navigation', { name: 'Categorias' })).not.toBeInTheDocument(); // sem coluna vazia
+    expect(screen.queryByText('O catálogo ainda não tem itens publicados.')).not.toBeInTheDocument(); // erro ≠ vazio
   });
   test('cotação: sem sessão leva ao login; comprador à sua área; outras contas veem «O meu painel»', async () => {
     api();

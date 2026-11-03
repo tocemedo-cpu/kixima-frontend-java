@@ -146,6 +146,11 @@ export const EN19 = {
   '4 estrelas ou mais': '4 stars or more',
   '3 estrelas ou mais': '3 stars or more',
   'Registar a minha empresa': 'Register my company',
+  'Produtos populares': 'Popular products',
+  'Idioma e aparência': 'Language and appearance',
+  'A KIXIMA em números': 'KIXIMA in numbers',
+  'O catálogo ainda não tem itens publicados.': 'The catalog has no published items yet.',
+  'Assim que as fornecedoras verificadas publicarem produtos e serviços, aparecem aqui. Se é fornecedora, registe a sua empresa.': 'As soon as verified suppliers publish products and services, they will appear here. If you are a supplier, register your company.',
 };
 
 export const FR19 = {
@@ -292,4 +297,9 @@ export const FR19 = {
   '4 estrelas ou mais': '4 étoiles ou plus',
   '3 estrelas ou mais': '3 étoiles ou plus',
   'Registar a minha empresa': 'Enregistrer mon entreprise',
+  'Produtos populares': 'Produits populaires',
+  'Idioma e aparência': 'Langue et apparence',
+  'A KIXIMA em números': 'KIXIMA en chiffres',
+  'O catálogo ainda não tem itens publicados.': 'Le catalogue ne contient pas encore d’articles publiés.',
+  'Assim que as fornecedoras verificadas publicarem produtos e serviços, aparecem aqui. Se é fornecedora, registe a sua empresa.': 'Dès que les fournisseurs vérifiés publieront des produits et services, ils apparaîtront ici. Si vous êtes fournisseur, enregistrez votre entreprise.',
 };

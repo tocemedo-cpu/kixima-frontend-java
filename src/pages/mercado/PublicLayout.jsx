@@ -1,13 +1,14 @@
 // src/pages/mercado/PublicLayout.jsx
-// Moldura das páginas públicas do marketplace: cabeçalho comercial (marca, pesquisa, categorias, conta e cotação), o
-// conteúdo da rota e o rodapé institucional completo. Quem tem sessão também pode navegar aqui (vê «O meu painel»).
+// Moldura das páginas públicas do marketplace: cabeçalho comercial (marca, pesquisa, conta e cotação, mais UM só botão de
+// preferências com idioma e fundo), navegação por categorias, o conteúdo da rota e o rodapé institucional completo.
+// Quem tem sessão também pode navegar aqui (vê «O meu painel»).
 import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { homeDe } from '../../domain';
-import { useI18n } from '../../i18n';
+import { LANGS, useI18n } from '../../i18n';
 import { SeletorDeFundo } from '../../tema/TemaContext';
-import { Brand, CorporateFooter, LanguageDropdown } from '../corporate/CorporateChrome';
+import { Brand, CorporateFooter } from '../corporate/CorporateChrome';
 import '../corporate/bancada-front.css';
 import './mercado.css';
 import { BarraComparacao } from './componentes';
@@ -68,13 +69,53 @@ function MenuCategorias() {
   );
 }
 
+/** Idioma e fundo num único botão (em vez de dois controlos soltos no cabeçalho). Fecha com Esc ou ao clicar fora. */
+function Preferencias() {
+  const { t, lang, setLang } = useI18n();
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!aberto) return undefined;
+    const fora = (e) => { if (ref.current && !ref.current.contains(e.target)) setAberto(false); };
+    const tecla = (e) => { if (e.key === 'Escape') setAberto(false); };
+    document.addEventListener('mousedown', fora);
+    document.addEventListener('keydown', tecla);
+    return () => { document.removeEventListener('mousedown', fora); document.removeEventListener('keydown', tecla); };
+  }, [aberto]);
+  const atual = LANGS.find((l) => l.code === lang) ?? LANGS[0];
+  return (
+    <div className="pm-pref" ref={ref}>
+      <button type="button" className="pm-pref-btn" aria-haspopup="dialog" aria-expanded={aberto} onClick={() => setAberto((v) => !v)}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9S14.5 18.5 12 21c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z" />
+        </svg>
+        <span>{atual.code.toUpperCase()}</span>
+        <span className="pm-sr">{t('Idioma e aparência')}</span>
+      </button>
+      {aberto ? (
+        <div className="pm-pref-painel" role="dialog" aria-label={t('Idioma e aparência')}>
+          <p className="pm-pref-tit">{t('Idioma')}</p>
+          <div className="pm-pref-lingua" role="group" aria-label={t('Idioma')}>
+            {LANGS.map((l) => (
+              <button key={l.code} type="button" aria-pressed={l.code === lang} onClick={() => setLang(l.code)}>
+                <span aria-hidden="true">{l.flag}</span> {l.label}
+              </button>
+            ))}
+          </div>
+          <p className="pm-pref-tit">{t('Fundo')}</p>
+          <SeletorDeFundo />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function Cabecalho() {
   const { t } = useI18n();
   const { user, loading } = useAuth();
   const cotacao = destinoCotacao(user);
   return (
     <header className="pm-topo">
-      <div className="pm-topo-faixa"><div className="pm-in"><span>{t('E-MARKETPLACE B2B · SOURCE-TO-PAY')}</span></div></div>
       <div className="pm-in pm-topo-linha">
         <Brand inverse compact />
         <Pesquisa />
@@ -85,7 +126,7 @@ function Cabecalho() {
               ? <Link className="btn pequeno" to={homeDe(user)}>{t('O meu painel')}</Link>
               : (<><Link className="pm-acao-link" to="/login">{t('Entrar')}</Link><Link className="btn pequeno" to="/cadastro">{t('Registar empresa')}</Link></>)}
           </div>
-          <div className="pm-pref"><SeletorDeFundo compacto /><LanguageDropdown /></div>
+          <Preferencias />
         </div>
       </div>
       <nav className="pm-in pm-nav" aria-label={t('Navegação principal')}>
