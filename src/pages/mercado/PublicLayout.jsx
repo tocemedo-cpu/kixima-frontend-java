@@ -17,12 +17,17 @@ import { destinoCotacao, urlCategoria } from './mercadoDados';
 
 const ESCOPOS = [['tudo', 'Tudo'], ['PRODUTO', 'Produtos'], ['SERVICO', 'Serviços'], ['fornecedoras', 'Fornecedoras']];
 
+const PREFIXO_CATEGORIA = 'cat:';
+
 function Pesquisa() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { search } = useLocation();
+  const { globais } = useMercado();
   const [q, setQ] = useState(() => new URLSearchParams(search).get('q') || '');
   const [escopo, setEscopo] = useState('tudo');
+  // As categorias do seletor são as REAIS do catálogo (facetas da API); sem elas só há os quatro âmbitos.
+  const categorias = globais?.categories || [];
 
   function enviar(e) {
     e.preventDefault();
@@ -31,7 +36,8 @@ function Pesquisa() {
     if (termo) sp.set('q', termo);
     if (escopo === 'fornecedoras') navigate(`/fornecedoras${sp.size ? `?${sp}` : ''}`);
     else {
-      if (escopo !== 'tudo') sp.set('kind', escopo);
+      if (escopo.startsWith(PREFIXO_CATEGORIA)) sp.set('category', escopo.slice(PREFIXO_CATEGORIA.length));
+      else if (escopo !== 'tudo') sp.set('kind', escopo);
       navigate(`/produtos${sp.size ? `?${sp}` : ''}`);
     }
   }
@@ -40,7 +46,14 @@ function Pesquisa() {
     <form className="pm-pesquisa" role="search" onSubmit={enviar}>
       <label className="pm-sr" htmlFor="pm-escopo">{t('Onde pesquisar')}</label>
       <select id="pm-escopo" value={escopo} onChange={(e) => setEscopo(e.target.value)}>
-        {ESCOPOS.map(([v, rotulo]) => <option key={v} value={v}>{t(rotulo)}</option>)}
+        <optgroup label={t('Onde pesquisar')}>
+          {ESCOPOS.map(([v, rotulo]) => <option key={v} value={v}>{t(rotulo)}</option>)}
+        </optgroup>
+        {categorias.length ? (
+          <optgroup label={t('Categorias')}>
+            {categorias.map((c) => <option key={c.name} value={`${PREFIXO_CATEGORIA}${c.name}`}>{c.name}</option>)}
+          </optgroup>
+        ) : null}
       </select>
       <label className="pm-sr" htmlFor="pm-q">{t('Pesquisar produtos, serviços ou fornecedores…')}</label>
       <input id="pm-q" type="search" value={q} maxLength={120} onChange={(e) => setQ(e.target.value)}
@@ -121,7 +134,7 @@ function Cabecalho() {
         <Pesquisa />
         <div className="pm-acoes">
           <div className="pm-conta">
-            {cotacao ? <Link className="pm-acao-link" to={cotacao}>{t('Pedir cotação')}</Link> : null}
+            {cotacao ? <Link className="pm-cta-cotacao" to={cotacao}>{t('Pedir cotação')}</Link> : null}
             {loading ? null : user
               ? <Link className="btn pequeno" to={homeDe(user)}>{t('O meu painel')}</Link>
               : (<><Link className="pm-acao-link" to="/login">{t('Entrar')}</Link><Link className="btn pequeno" to="/cadastro">{t('Registar empresa')}</Link></>)}

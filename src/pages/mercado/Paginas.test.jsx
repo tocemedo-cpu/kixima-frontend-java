@@ -77,9 +77,9 @@ describe('Homepage', () => {
     const coluna = await screen.findByRole('navigation', { name: 'Categorias' });
     expect(within(coluna).getByRole('link', { name: /Válvulas/ })).toHaveAttribute('href', '/categorias/V%C3%A1lvulas');
     expect(within(coluna).getByRole('link', { name: /Ver todo o catálogo/ })).toHaveAttribute('href', '/produtos');
-    // Ordem comercial: categorias → produtos populares → serviços → fornecedoras verificadas.
+    // Ordem comercial: produtos populares → serviços → fornecedoras verificadas → categorias industriais.
     const titulos = (await screen.findAllByRole('heading', { level: 2 })).map((h) => h.textContent);
-    const ordem = ['Categorias industriais', 'Produtos populares', 'Serviços técnicos', 'Fornecedoras e prestadoras de serviços verificadas'];
+    const ordem = ['Produtos populares', 'Serviços técnicos', 'Fornecedoras e prestadoras de serviços verificadas', 'Categorias industriais'];
     expect(ordem.map((t) => titulos.indexOf(t))).toEqual([...ordem.map((t) => titulos.indexOf(t))].sort((a, b) => a - b));
     expect(ordem.every((t) => titulos.includes(t))).toBe(true);
   });
@@ -113,6 +113,47 @@ describe('Homepage', () => {
     const vazio = screen.getByText('O catálogo ainda não tem itens publicados.').closest('[role="status"]');
     expect(within(vazio).getByRole('link', { name: 'Registar a minha empresa' })).toHaveAttribute('href', '/cadastro');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument(); // vazio não é erro
+  });
+  test('três colunas: categorias, banner e, à direita, cotação + fornecedoras em destaque (dados reais)', async () => {
+    api();
+    const { container } = rota('/', '/', <MercadoHome />);
+    const direita = (await screen.findByRole('heading', { name: 'Fornecedoras em destaque' })).closest('aside');
+    expect(direita).toHaveClass('pm-direita');
+    expect(within(direita).getByRole('heading', { name: 'Peça cotações' })).toBeInTheDocument();
+    expect(within(direita).getByRole('link', { name: F.name })).toHaveAttribute('href', '/fornecedoras/F1');
+    expect(within(direita).getByText(/Luanda, Angola/)).toBeInTheDocument();
+    expect(within(direita).getByRole('link', { name: /Ver todas/ })).toHaveAttribute('href', '/fornecedoras');
+    expect(container.querySelector('.pm-heroi > .pm-trilho')).not.toBeNull();
+    expect(container.querySelector('.pm-heroi > .pm-banner h1')).not.toBeNull();
+  });
+  test('sem fornecedoras o painel «em destaque» não aparece, mas a cotação fica (sem painel vazio)', async () => {
+    api();
+    const original = apiGet.getMockImplementation();
+    apiGet.mockImplementation((url, params) => (url.endsWith('/suppliers') ? Promise.resolve([]) : original(url, params)));
+    rota('/', '/', <MercadoHome />);
+    expect(await screen.findByRole('heading', { name: 'Peça cotações' })).toBeInTheDocument();
+    await screen.findByRole('heading', { name: 'Produtos populares' });
+    expect(screen.queryByRole('heading', { name: 'Fornecedoras em destaque' })).not.toBeInTheDocument();
+  });
+  test('a fornecedora usa o logótipo da API quando existe; senão, a inicial (sem imagem inventada)', async () => {
+    api();
+    const original = apiGet.getMockImplementation();
+    apiGet.mockImplementation((url, params) => (url.endsWith('/suppliers')
+      ? Promise.resolve([{ id: 'F1', name: F.name, city: 'Luanda', country: 'Angola', rating: null, productCount: 2, logoUrl: '/logos/f1.png' },
+        { id: 'F2', name: 'Outra, Lda', city: null, country: null, rating: null, productCount: 0, logoUrl: null }])
+      : original(url, params)));
+    const { container } = rota('/', '/', <MercadoHome />);
+    await screen.findByRole('heading', { name: 'Fornecedoras e prestadoras de serviços verificadas' });
+    expect(container.querySelector('img.pm-logo')).toHaveAttribute('src', '/logos/f1.png');
+    expect(container.querySelector('span.pm-logo')).toHaveTextContent('O');
+  });
+  test('produtos populares em grelha (não em carrossel) e com a fotografia que a API devolve', async () => {
+    api();
+    const { container } = rota('/', '/', <MercadoHome />);
+    const seccao = (await screen.findByRole('heading', { name: 'Produtos populares' })).closest('section');
+    expect(seccao.querySelector('.pm-grade-grelha')).not.toBeNull();
+    expect(container.querySelector('.pm-prateleira')).toBeNull();
+    expect(seccao.querySelector('img.pm-foto')).toHaveAttribute('src', '/catalog/v.jpg');
   });
   test('fornecedoras verificadas mostram localização, itens ativos e a avaliação real', async () => {
     api();

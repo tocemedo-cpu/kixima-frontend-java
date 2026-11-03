@@ -1,9 +1,10 @@
 // src/pages/mercado/MercadoHome.jsx
-// Homepage do marketplace (rota «/» para quem não tem sessão). O catálogo é o protagonista: uma faixa de abertura
-// compacta (categorias · apresentação · pedido de cotação) e logo a seguir categorias, produtos populares, serviços e
-// fornecedoras verificadas. Tudo vem da API pública. Uma secção sem dados reais NÃO aparece (sem enchimento), cada
-// pedido tem o seu estado de carregamento, e se a API estiver em baixo aparece o aviso honesto em vez de produtos
-// inventados. A coluna de categorias só existe quando há categorias (ou enquanto carregam): nunca fica vazia.
+// Homepage do marketplace (rota «/» para quem não tem sessão). O catálogo é o protagonista. Abertura em três colunas —
+// categorias à esquerda, banner industrial ao centro, pedido de cotação + fornecedoras em destaque à direita — e logo a
+// seguir produtos populares (grelha), serviços técnicos, fornecedoras verificadas e categorias industriais. Tudo vem da
+// API pública. Uma secção sem dados reais NÃO aparece (sem enchimento), cada pedido tem o seu estado de carregamento, e
+// se a API estiver em baixo aparece o aviso honesto em vez de produtos inventados. A coluna de categorias só existe
+// quando há categorias (ou enquanto carregam), e o painel de fornecedoras só quando há fornecedoras: nada fica vazio.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fornecedoras as lerFornecedoras, pesquisar } from '../../api/publicCatalog';
@@ -28,6 +29,15 @@ function Seccao({ titulo, ligacao, rotuloLigacao, children, id }) {
   );
 }
 
+/** Logótipo da fornecedora quando a API o devolve; senão, a inicial do nome (nunca uma imagem inventada). */
+function LogoFornecedora({ f }) {
+  return f.logoUrl
+    ? <img className="pm-logo" src={f.logoUrl} alt="" loading="lazy" />
+    : <span className="pm-logo" aria-hidden="true">{f.name.trim().charAt(0).toUpperCase()}</span>;
+}
+
+const Grelha = ({ itens }) => <div className="pm-grade pm-grade-grelha">{itens.map((p) => <CartaoProduto key={p.id} p={p} />)}</div>;
+
 /** Coluna de categorias do topo: carrega com esqueletos e só mostra as categorias que a API devolveu. */
 function TrilhoCategorias({ categorias, carregando }) {
   const { t } = useI18n();
@@ -36,7 +46,7 @@ function TrilhoCategorias({ categorias, carregando }) {
       <h2>{t('Categorias')}</h2>
       {carregando
         ? Array.from({ length: 8 }, (_, i) => <span key={i} className="pm-trilho-esq" aria-hidden="true" />)
-        : categorias.slice(0, 7).map((c) => {
+        : categorias.slice(0, 9).map((c) => {
           const v = categoryVisual(c.name);
           return (
             <Link key={c.name} to={urlCategoria(c.name)}>
@@ -72,7 +82,7 @@ export default function MercadoHome() {
   const [forn, setForn] = useState({ carregando: true, items: [] });
   useTitulo(t('Marketplace B2B industrial'));
 
-  const produtos = usePesquisa({ kind: 'PRODUTO', sort: 'solicitados', limit: 10 });
+  const produtos = usePesquisa({ kind: 'PRODUTO', sort: 'solicitados', limit: 12 });
   const servicos = usePesquisa({ kind: 'SERVICO', sort: 'avaliacao', limit: 6 });
   const recentes = usePesquisa({ sort: 'recentes', limit: 14 });
 
@@ -85,7 +95,7 @@ export default function MercadoHome() {
 
   // Um item aparece numa só prateleira.
   const jaMostrados = new Set([...produtos.items, ...servicos.items].map((p) => p.id));
-  const novos = recentes.items.filter((p) => !jaMostrados.has(p.id)).slice(0, 10);
+  const novos = recentes.items.filter((p) => !jaMostrados.has(p.id)).slice(0, 6);
 
   const categorias = globais?.categories || [];
   const cotacao = destinoCotacao(user);
@@ -118,14 +128,32 @@ export default function MercadoHome() {
           </div>
         </div>
 
-        <aside className="pm-rfq" aria-labelledby="pm-rfq-t">
-          <h2 id="pm-rfq-t">{t('Peça cotações')}</h2>
-          <p>{t('Diga o que precisa e receba propostas com preço e prazo de várias fornecedoras.')}</p>
-          <ol><li>{t('Descreva o que precisa')}</li><li>{t('Compare as propostas')}</li><li>{t('Emita a ordem de compra')}</li></ol>
-          {cotacao ? <Link className="btn" to={cotacao}>{user ? t('Pedir cotação') : t('Entrar para pedir cotação')}</Link>
-            : <Link className="btn" to={homeDe(user)}>{t('O meu painel')}</Link>}
-          {!user ? <Link className="btn alt" to="/cadastro">{t('Registar a minha empresa')}</Link> : null}
-          {!user ? <p className="pm-nota">{t('Para enviar um pedido precisa de uma conta empresarial.')}</p> : null}
+        <aside className="pm-direita">
+          <section className="pm-rfq" aria-labelledby="pm-rfq-t">
+            <h2 id="pm-rfq-t">{t('Peça cotações')}</h2>
+            <p>{t('Diga o que precisa e receba propostas com preço e prazo de várias fornecedoras.')}</p>
+            {cotacao ? <Link className="btn" to={cotacao}>{user ? t('Pedir cotação') : t('Entrar para pedir cotação')}</Link>
+              : <Link className="btn" to={homeDe(user)}>{t('O meu painel')}</Link>}
+            {!user ? <Link className="btn alt" to="/cadastro">{t('Registar a minha empresa')}</Link> : null}
+            {!user ? <p className="pm-nota">{t('Para enviar um pedido precisa de uma conta empresarial.')}</p> : null}
+          </section>
+          {forn.items.length ? (
+            <section className="pm-destaque" aria-labelledby="pm-dest-t">
+              <h2 id="pm-dest-t">{t('Fornecedoras em destaque')}</h2>
+              <ul>
+                {forn.items.slice(0, 3).map((f) => (
+                  <li key={f.id}>
+                    <LogoFornecedora f={f} />
+                    <span>
+                      <Link to={urlFornecedora(f.id)}>{f.name}</Link>
+                      <small><span className="pm-verif">✔ {t('Verificada')}</span>{[f.city, f.country].filter(Boolean).length ? ` · ${[f.city, f.country].filter(Boolean).join(', ')}` : ''}</small>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <Link className="pm-ver-todas" to="/fornecedoras">{t('Ver todas')} →</Link>
+            </section>
+          ) : null}
         </aside>
       </div>
 
@@ -144,6 +172,38 @@ export default function MercadoHome() {
             {!user ? <Link className="btn pequeno" to="/cadastro">{t('Registar a minha empresa')}</Link> : null}
           </EstadoVazio>
         </div>
+      ) : null}
+
+      {produtos.carregando ? <div className="pm-sec pm-in"><Esqueletos n={6} /></div> : null}
+      {produtos.items.length ? (
+        <Seccao id="pm-populares" titulo={t('Produtos populares')} ligacao="/produtos?kind=PRODUTO&sort=solicitados" rotuloLigacao={t('Ver todos')}>
+          <Grelha itens={produtos.items} />
+        </Seccao>
+      ) : null}
+
+      {servicos.items.length ? (
+        <Seccao id="pm-servicos" titulo={t('Serviços técnicos')} ligacao="/produtos?kind=SERVICO" rotuloLigacao={t('Ver todos')}>
+          <Grelha itens={servicos.items} />
+        </Seccao>
+      ) : null}
+
+      {forn.items.length ? (
+        <Seccao id="pm-forn" titulo={t('Fornecedoras e prestadoras de serviços verificadas')} ligacao="/fornecedoras" rotuloLigacao={t('Ver todas')}>
+          <div className="pm-fornecedoras">
+            {forn.items.map((f) => {
+              const local = [f.city, f.country].filter(Boolean).join(', ');
+              const nota = Number(f.rating);
+              return (
+                <article className="pm-fornecedora" key={f.id}>
+                  <h3><LogoFornecedora f={f} /><Link to={urlFornecedora(f.id)}>{f.name}</Link></h3>
+                  <p><span className="pm-verif">✔ {t('Verificada')}</span>{local ? ` · ${local}` : ''}</p>
+                  <p>{t('{n} produtos e serviços ativos', { n: formatNumber(f.productCount || 0) })}</p>
+                  {nota > 0 ? <p className="pm-aval"><Stars value={nota} size={12} /> <b>{nota.toFixed(1).replace('.', ',')}</b></p> : null}
+                </article>
+              );
+            })}
+          </div>
+        </Seccao>
       ) : null}
 
       {carregandoCategorias ? (
@@ -167,41 +227,9 @@ export default function MercadoHome() {
         </Seccao>
       ) : null}
 
-      {produtos.carregando ? <div className="pm-sec pm-in"><Esqueletos n={5} /></div> : null}
-      {produtos.items.length ? (
-        <Seccao id="pm-populares" titulo={t('Produtos populares')} ligacao="/produtos?kind=PRODUTO&sort=solicitados" rotuloLigacao={t('Ver todos')}>
-          <div className="pm-prateleira">{produtos.items.map((p) => <CartaoProduto key={p.id} p={p} />)}</div>
-        </Seccao>
-      ) : null}
-
-      {servicos.items.length ? (
-        <Seccao id="pm-servicos" titulo={t('Serviços técnicos')} ligacao="/produtos?kind=SERVICO" rotuloLigacao={t('Ver todos')}>
-          <div className="pm-prateleira">{servicos.items.map((p) => <CartaoProduto key={p.id} p={p} />)}</div>
-        </Seccao>
-      ) : null}
-
-      {forn.items.length ? (
-        <Seccao id="pm-forn" titulo={t('Fornecedoras e prestadoras de serviços verificadas')} ligacao="/fornecedoras" rotuloLigacao={t('Ver todas')}>
-          <div className="pm-fornecedoras">
-            {forn.items.map((f) => {
-              const local = [f.city, f.country].filter(Boolean).join(', ');
-              const nota = Number(f.rating);
-              return (
-                <article className="pm-fornecedora" key={f.id}>
-                  <h3><span className="pm-logo" aria-hidden="true">{f.name.trim().charAt(0).toUpperCase()}</span><Link to={urlFornecedora(f.id)}>{f.name}</Link></h3>
-                  <p><span className="pm-verif">✔ {t('Verificada')}</span>{local ? ` · ${local}` : ''}</p>
-                  <p>{t('{n} produtos e serviços ativos', { n: formatNumber(f.productCount || 0) })}</p>
-                  {nota > 0 ? <p className="pm-aval"><Stars value={nota} size={12} /> <b>{nota.toFixed(1).replace('.', ',')}</b></p> : null}
-                </article>
-              );
-            })}
-          </div>
-        </Seccao>
-      ) : null}
-
       {novos.length ? (
         <Seccao id="pm-recentes" titulo={t('Adicionados recentemente')} ligacao="/produtos?sort=recentes" rotuloLigacao={t('Ver todos')}>
-          <div className="pm-prateleira">{novos.map((p) => <CartaoProduto key={p.id} p={p} />)}</div>
+          <Grelha itens={novos} />
         </Seccao>
       ) : null}
 

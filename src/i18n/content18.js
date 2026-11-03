@@ -152,6 +152,7 @@ export const EN19 = {
   'O catálogo ainda não tem itens publicados.': 'The catalog has no published items yet.',
   'Assim que as fornecedoras verificadas publicarem produtos e serviços, aparecem aqui. Se é fornecedora, registe a sua empresa.': 'As soon as verified suppliers publish products and services, they will appear here. If you are a supplier, register your company.',
   'Não foi possível contactar o servidor da KIXIMA. Verifique a ligação ou tente mais tarde.': 'Could not reach the KIXIMA server. Check your connection or try again later.',
+  'Fornecedoras em destaque': 'Featured suppliers',
 };
 
 export const FR19 = {
@@ -304,4 +305,5 @@ export const FR19 = {
   'O catálogo ainda não tem itens publicados.': 'Le catalogue ne contient pas encore d’articles publiés.',
   'Assim que as fornecedoras verificadas publicarem produtos e serviços, aparecem aqui. Se é fornecedora, registe a sua empresa.': 'Dès que les fournisseurs vérifiés publieront des produits et services, ils apparaîtront ici. Si vous êtes fournisseur, enregistrez votre entreprise.',
   'Não foi possível contactar o servidor da KIXIMA. Verifique a ligação ou tente mais tarde.': 'Impossible de joindre le serveur KIXIMA. Vérifiez votre connexion ou réessayez plus tard.',
+  'Fornecedoras em destaque': 'Fournisseurs à la une',
 };
