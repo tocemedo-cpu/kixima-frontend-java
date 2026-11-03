@@ -1,0 +1,50 @@
+# Testa e compila o frontend KIXIMA (React + Vite): testes unitários (Vitest), auditoria de traduções e build de produção.
+#
+# - Não precisa de backend nem de segredos: os testes simulam a API.
+# - Os testes de ponta a ponta (Playwright, pasta e2e/) ficam de fora: exigem o backend Java e uma base de dados a correr.
+# - O build vai para uma pasta temporária: o `dist/` versionado do repositório não é tocado nem publicado por este workflow.
+name: Frontend tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Uma execução de cada vez por ramo/PR; uma nova cancela a anterior ainda em curso (nunca a do `main`).
+concurrency:
+  group: frontend-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Testar e compilar (Node 22)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Código
+        uses: actions/checkout@v5
+
+      - name: Node 22 com cache do npm
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      # `npm ci` instala exactamente o que está no package-lock.json (falha se ele e o package.json divergirem).
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Testes (Vitest)
+        run: npm test
+
+      - name: Traduções (PT/EN/FR sem chaves em falta)
+        run: npm run i18n:strict
+
+      - name: Build de produção
+        run: npm run build -- --outDir "$RUNNER_TEMP/dist" --emptyOutDir
